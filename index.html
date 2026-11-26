@@ -146,6 +146,9 @@ details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;c
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+/* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
+const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
+const FB='https://www.gstatic.com/firebasejs/11.0.2/';
 const COLS=['players','weeks','votes','matches','ratings','settings'];
 const S={players:[],weeks:[],votes:[],matches:[],ratings:[],settings:[]};
 const TEAMS=[{name:'A팀',c:'#ff6a13'},{name:'B팀',c:'#2a6cff'},{name:'C팀',c:'#c6e600'},{name:'D팀',c:'#f2f2f2'}];
@@ -169,8 +172,15 @@ function remoteStore(db){
     set:(c,id,d)=>db.collection(c).doc(id).set(d),
     del:(c,id)=>db.collection(c).doc(id).delete()};
 }
+async function firebaseStore(cfg){
+  const app=await import(FB+'firebase-app.js');const fs=await import(FB+'firebase-firestore.js');
+  const db=fs.getFirestore(app.initializeApp(cfg));
+  return{sub(c,cb,err){return fs.onSnapshot(fs.collection(db,c),s=>cb(s.docs.map(d=>({id:d.id,...d.data()})),s.metadata),err)},
+    set:(c,id,d)=>fs.setDoc(fs.doc(db,c,id),d),
+    del:(c,id)=>fs.deleteDoc(fs.doc(db,c,id))};
+}
 const q={};
-function queue(key,fn){q[key]=(q[key]||Promise.resolve()).then(fn).catch(e=>{toast('저장하지 못했어요'+(e&&e.code==='invalid_argument'?' (편집 권한이 필요해요)':''))});return q[key]}
+function queue(key,fn){q[key]=(q[key]||Promise.resolve()).then(fn).catch(e=>{toast('저장하지 못했어요'+(e&&(e.code==='invalid_argument'||e.code==='permission-denied')?' (권한이 없어요)':''))});return q[key]}
 function save(c,obj){const{id,...d}=obj;const i=S[c].findIndex(x=>x.id===id);if(i>=0)S[c][i]={id,...d};else S[c].push({id,...d});render();return queue(c+'/'+id,()=>store.set(c,id,JSON.parse(JSON.stringify(d))))}
 function remove(c,id){S[c]=S[c].filter(x=>x.id!==id);render();return queue(c+'/'+id,()=>store.del(c,id))}
 
@@ -337,7 +347,7 @@ function render(){
   const w=curWeek();$('#subTitle').textContent=w?fmtDate(w.id)+' 경기 · 참석 '+attendees(w).length+'명':'경기 일정을 만들어 주세요';
   const mp=me&&P(me);$('#meBtn').innerHTML='나: <b>'+esc(mp?mp.name:'선택하기')+'</b>';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===ui.tab));
-  const notes=[];if(mode==='local')notes.push('미리보기 모드라 이 기기에만 저장돼요. 게시된 링크에서 열면 팀원과 실시간으로 공유돼요.');if(slowNote)notes.push(slowNote);
+  const notes=[];if(mode==='local')notes.push('지금은 이 기기에만 저장돼요. 팀원과 공유하려면 데이터베이스 연결이 필요해요.');if(slowNote)notes.push(slowNote);
   $('#note').innerHTML=notes.map(n=>`<div>${esc(n)}</div>`).join('');
   const main=$('#app');const a=document.activeElement;const fid=a&&a.id&&main.contains(a)&&a.tagName==='INPUT'?a.id:null;const fv=fid?a.value:null;
   main.innerHTML=mode==='loading'?'<div class="empty mute">데이터를 불러오는 중이에요…</div>':VIEWS[ui.tab]();
@@ -425,8 +435,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'){const m={guestName:'
 /* ---------- boot ---------- */
 render();
 (async()=>{
-  let db=null;try{db=typeof claude!=='undefined'&&claude.use?await claude.use('db'):null}catch(e){db=null}
-  store=db?remoteStore(db):localStore();mode=db?'remote':'local';
+  if(FIREBASE_CONFIG){try{store=await firebaseStore(FIREBASE_CONFIG);mode='remote'}catch(e){store=null}}
+  if(!store){let db=null;try{db=typeof claude!=='undefined'&&claude.use?await claude.use('db'):null}catch(e){db=null}
+    store=db?remoteStore(db):localStore();mode=db?'remote':'local'}
   const timer=setTimeout(()=>{if(loaded.size<COLS.length){slowNote='데이터를 아직 불러오지 못했어요. 표시된 내용이 최신이 아닐 수 있어요.';render()}},10000);
   COLS.forEach(c=>store.sub(c,(rows,meta)=>{S[c]=rows;if(!meta||!meta.fromCache)loaded.add(c);if(loaded.size===COLS.length){clearTimeout(timer);slowNote=''}
     if(!sh||sh.type!=='rate')drawSheet();render()},err=>{clearTimeout(timer);slowNote='데이터 연결이 끊겼어요. 페이지를 다시 열어 주세요.';render()}));
