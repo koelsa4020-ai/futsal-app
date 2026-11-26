@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function authed() { return request.auth != null; }
+    function teamRef() { return /databases/$(database)/documents/settings/team; }
+    function isMgr() {
+      return authed() && exists(teamRef())
+        && request.auth.uid in get(teamRef()).data.get('managerUids', []);
+    }
+    function meRef() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function joined() { return authed() && exists(meRef()); }
+    function isMember() { return joined() || isMgr(); }
+    function myPid() { return get(meRef()).data.pid; }
+
+    // 팀 설정: 로그인한 사람은 읽기, 매니저만 수정. 매니저가 아무도 없을 때만 첫 매니저 등록 가능.
+    match /settings/team {
+      allow read: if authed();
+      allow create: if authed() && request.resource.data.managerUids == [request.auth.uid];
+      allow update: if isMgr()
+        || (authed() && resource.data.get('managerUids', []).size() == 0
+            && request.resource.data.managerUids == [request.auth.uid]);
+      allow delete: if false;
+    }
+
+    // 구글 계정 ↔ 선수 연결: 본인은 자기 계정이 연결된 선수로만 가입 가능.
+    match /users/{uid} {
+      allow read: if isMember() || (authed() && request.auth.uid == uid);
+      allow create, update: if isMgr()
+        || (authed() && request.auth.uid == uid
+            && get(/databases/$(database)/documents/players/$(request.resource.data.pid)).data.get('uid', null) == request.auth.uid);
+      allow delete: if isMgr();
+    }
+
+    // 선수: 가입할 때 자기 계정으로 새로 만들거나, 아직 연결 안 된 예전 기록을 이어받기.
+    match /players/{id} {
+      allow read: if authed();
+      allow create: if isMgr() || (authed() && request.resource.data.get('uid', null) == request.auth.uid);
+      allow update: if isMgr()
+        || (authed() && request.resource.data.get('uid', null) == request.auth.uid
+            && resource.data.get('uid', null) in [null, request.auth.uid]);
+      allow delete: if isMgr();
+    }
+
+    match /weeks/{id} {
+      allow read, create, update: if isMember();
+      allow delete: if isMgr();
+    }
+
+    // 참석 투표: 본인 것만, 매니저는 모두.
+    match /votes/{id} {
+      allow read: if isMember();
+      allow create, update: if isMgr()
+        || (joined() && request.resource.data.pid == myPid()
+            && id == request.resource.data.week + '__' + myPid());
+      allow delete: if isMgr();
+    }
+
+    match /matches/{id} {
+      allow read, create, update: if isMember();
+      allow delete: if isMgr();
+    }
+
+    // 평가: 본인 이름으로만.
+    match /ratings/{id} {
+      allow read: if isMember();
+      allow create, update: if joined() && request.resource.data.rater == myPid()
+        && id == request.resource.data.match + '__' + myPid();
+      allow delete: if isMgr();
+    }
+  }
+}
