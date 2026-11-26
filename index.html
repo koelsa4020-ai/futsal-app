@@ -30,7 +30,7 @@ button,input,select{font:inherit;color:inherit}
 .me b{color:#ffd2b8}
 main{max-width:720px;margin:0 auto;padding:16px max(4vw,14px) 24px}
 .note{max-width:720px;margin:10px auto 0;padding:0 max(4vw,14px)}
-.note div{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--mute)}
+.note div+div{margin-top:6px}.note div{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--mute)}
 h2{font:400 22px/1.2 "Black Han Sans",sans-serif;margin:22px 0 10px}
 h2:first-child{margin-top:4px}
 h3{font-size:16px;margin:0 0 8px}
@@ -146,6 +146,8 @@ details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;c
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+/* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
+const APP_VERSION='2026.11.26-2';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -179,6 +181,15 @@ async function firebaseStore(cfg){
     set:(c,id,d)=>fs.setDoc(fs.doc(db,c,id),d),
     del:(c,id)=>fs.deleteDoc(fs.doc(db,c,id))};
 }
+async function checkUpdate(manual){
+  if(location.protocol!=='https:'&&location.protocol!=='http:'){if(manual)toast('여기서는 업데이트를 확인할 수 없어요');return}
+  ui.checking=manual;if(manual)render();
+  try{const res=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const t=await res.text();
+    const m=t.match(/const APP_VERSION='([^']+)'/);ui.newVer=m&&m[1]!==APP_VERSION?m[1]:null;
+    if(manual)toast(ui.newVer?'새 버전이 있어요':'이미 최신 버전이에요')}
+  catch(e){if(manual)toast('확인하지 못했어요. 인터넷 연결을 확인해 주세요')}
+  ui.checking=false;render()}
+const doUpdate=()=>location.replace(location.pathname+'?v='+Date.now()+location.hash);
 const q={};
 function queue(key,fn){q[key]=(q[key]||Promise.resolve()).then(fn).catch(e=>{toast('저장하지 못했어요'+(e&&(e.code==='invalid_argument'||e.code==='permission-denied')?' (권한이 없어요)':''))});return q[key]}
 function save(c,obj){const{id,...d}=obj;const i=S[c].findIndex(x=>x.id===id);if(i>=0)S[c][i]={id,...d};else S[c].push({id,...d});render();return queue(c+'/'+id,()=>store.set(c,id,JSON.parse(JSON.stringify(d))))}
@@ -335,6 +346,9 @@ function vMembers(){
   <h2>멤버 ${S.players.length}명</h2><div class="card"><div class="row"><input type="text" id="newName" class="grow" placeholder="이름 입력" maxlength="20"><button class="btn pri" data-act="addPlayer" type="button">추가</button></div>
   <ul class="list" style="margin-top:8px">${S.players.slice().sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(p=>`<li><span>${esc(p.name)} ${tierTag(ST[p.id]?.tier)}${mgrs().includes(p.id)?' <span class="tag t-pro">매니저</span>':''}</span><span class="row">${isMgr()||!mgrs().length?`<button class="btn ghost" data-act="toggleMgr" data-pid="${esc(p.id)}" type="button">${mgrs().includes(p.id)?'매니저 해제':'매니저 지정'}</button>`:''}${p.id===me?'<span class="tag t-none">나</span>':`<button class="btn ghost" data-act="setMe" data-pid="${esc(p.id)}" type="button">나로 설정</button>`}${armBtn('delPlayer:'+p.id,'삭제','ghost warn')}</span></li>`).join('')||'<li class="mute">팀원 이름을 하나씩 추가해 주세요.</li>'}</ul></div>
   <p class="mute">${mgrs().length?'매니저는 모든 멤버의 참석 여부를 바꿀 수 있고, 다른 매니저도 지정할 수 있어요.':'아직 매니저가 없어요. 처음 한 명은 누구나 지정할 수 있고, 그 다음부터는 매니저만 지정할 수 있어요.'}</p>
+  <h2>앱 업데이트</h2><div class="card"><div class="row" style="justify-content:space-between"><span>현재 버전 <b>${esc(APP_VERSION)}</b>${ui.newVer?`<br><span style="color:var(--acc)">새 버전 ${esc(ui.newVer)} 있음</span>`:''}</span>
+  ${ui.newVer?'<button class="btn pri" data-act="doUpdate" type="button">지금 업데이트</button>':`<button class="btn" data-act="checkUpdate" type="button" ${ui.checking?'disabled':''}>${ui.checking?'확인 중…':'업데이트 확인'}</button>`}</div>
+  <p class="mute" style="margin:8px 0 0">새 버전이 나오면 화면 위에 알림이 떠요. 홈 화면에 추가한 앱도 여기서 최신으로 바꿀 수 있어요. 투표와 경기 기록은 서버에 저장돼서 업데이트해도 그대로예요.</p></div>
   <p class="mute">이 기기에서 누구인지는 "나"로 기억돼요. 팀원들은 각자 자기 휴대폰에서 이름을 한 번만 고르면 돼요.</p>`;
 }
 
@@ -348,7 +362,7 @@ function render(){
   const mp=me&&P(me);$('#meBtn').innerHTML='나: <b>'+esc(mp?mp.name:'선택하기')+'</b>';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===ui.tab));
   const notes=[];if(mode==='local')notes.push('지금은 이 기기에만 저장돼요. 팀원과 공유하려면 데이터베이스 연결이 필요해요.');if(slowNote)notes.push(slowNote);
-  $('#note').innerHTML=notes.map(n=>`<div>${esc(n)}</div>`).join('');
+  $('#note').innerHTML=(ui.newVer?`<div class="row" style="justify-content:space-between;background:var(--acc);color:#fff"><span>새 버전이 나왔어요. 업데이트해도 기록은 그대로예요.</span><button class="btn" style="background:#fff;color:#111;border:0" data-act="doUpdate" type="button">업데이트</button></div>`:'')+notes.map(n=>`<div>${esc(n)}</div>`).join('');
   const main=$('#app');const a=document.activeElement;const fid=a&&a.id&&main.contains(a)&&a.tagName==='INPUT'?a.id:null;const fv=fid?a.value:null;
   main.innerHTML=mode==='loading'?'<div class="empty mute">데이터를 불러오는 중이에요…</div>':VIEWS[ui.tab]();
   if(fid){const n=document.getElementById(fid);if(n){n.value=fv;n.focus()}}
@@ -358,6 +372,9 @@ function tick(){document.querySelectorAll('[data-clock]').forEach(el=>{const m=S
   const rem=m.minutes*60-elapsed(m);el.classList.toggle('over',rem<0);
   el.innerHTML=(rem<0?'+'+mmss(-rem):mmss(rem))+'<small>'+(m.pausedAt?'일시정지':rem<0?'추가 시간':'남은 시간')+'</small>'})}
 setInterval(tick,1000);
+setInterval(()=>checkUpdate(false),5*60*1000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkUpdate(false)});
+setTimeout(()=>checkUpdate(false),3000);
 
 /* ---------- sheet ---------- */
 const sheet=$('#sheet'),panel=$('#panel');let sh=null;
@@ -423,12 +440,14 @@ const A={
   addPlayer:()=>{const n=$('#newName').value.trim();if(!n)return toast('이름을 입력해 주세요');if(S.players.some(p=>p.name===n))return toast('같은 이름이 이미 있어요');$('#newName').value='';save('players',{id:'p'+uid(),name:n,createdAt:Date.now()})},
   toggleMgr:b=>{const ms=mgrs();if(ms.length&&!isMgr())return toast('매니저만 바꿀 수 있어요');const id=b.dataset.pid;
     const next=ms.includes(id)?ms.filter(x=>x!==id):[...ms,id];if(ms.length&&!next.length)return toast('매니저는 최소 한 명 있어야 해요');save('settings',{...teamDoc(),managers:next})},
+  checkUpdate:()=>checkUpdate(true),
+  doUpdate,
   delPlayer:b=>{if(!arm(b.dataset.k))return;const id=b.dataset.k.split(':')[1];if(id===me){me=null;ls.set('futsal.me','')}remove('players',id)}
 };
 function addEvent(x){const side=sh.side;const m=S.matches.find(y=>y.id===sh.mid);closeSheet();if(!m||m.status!=='live')return;
   save('matches',{...m,events:[...(m.events||[]),{id:'e'+uid(),team:side,sec:Math.floor(elapsed(m)),...x}]});toast(x.og?'자책골 기록':'골 기록: '+nameOf(x.scorer))}
 function onClick(e){const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const f=A[b.dataset.act];if(f)f(b)}
-document.addEventListener('click',e=>{if(e.target.closest('#tabs')){const b=e.target.closest('[data-tab]');if(b)A.go(b);return}if(e.target.closest('#meBtn'))return A.pickMe();if(e.target.closest('#app,#panel'))onClick(e)});
+document.addEventListener('click',e=>{if(e.target.closest('#tabs')){const b=e.target.closest('[data-tab]');if(b)A.go(b);return}if(e.target.closest('#meBtn'))return A.pickMe();if(e.target.closest('#app,#panel,#note'))onClick(e)});
 document.addEventListener('change',e=>{if(e.target.id==='weekSel'){ui.week=e.target.value;render()}if(e.target.id==='balance')ui.balance=e.target.checked});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'){const m={guestName:'addGuest',newName:'addPlayer',teamName:'saveTeam'}[e.target.id];if(m)A[m]()}if(e.key==='Escape')closeSheet()});
 
