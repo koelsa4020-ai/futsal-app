@@ -229,7 +229,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-27';
+const APP_VERSION='2026.11.27-28';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -341,7 +341,8 @@ const isPresPid=pid=>{const p=P(pid);return!!(p&&p.uid&&p.uid===presUid())};
 const isMgrPid=pid=>{const p=P(pid);return!!(p&&p.uid&&(p.uid===presUid()||mgrUids().includes(p.uid)))};
 const roleTag=pid=>isPresPid(pid)?' <span class="tag r-pres">회장</span>':isMgrPid(pid)?' <span class="tag r-mgr">매니저</span>':'';
 const MGR_ONLY='매니저만 할 수 있어요';
-const canVote=pid=>isMgr()||(!!me&&pid===me);
+/* 지난 경기(날짜가 지난 일정)의 투표는 참여율 기록이라 회장만 수정 */
+const canVote=(pid,wid)=>(wid&&wid<todayStr())?isPres():(isMgr()||(!!me&&pid===me));
 const voteOf=(wid,pid)=>S.votes.find(v=>v.id===wid+'__'+pid)?.status||null;
 const attendees=w=>[...S.players.filter(p=>voteOf(w.id,p.id)==='yes').map(p=>p.id),...(w.guests||[]).map(g=>g.id)];
 const score=m=>({a:(m.events||[]).filter(e=>e.team==='a').length,b:(m.events||[]).filter(e=>e.team==='b').length});
@@ -462,11 +463,11 @@ function vVote(){
       <div class="ttl">${esc(fmtDate(w.id))} 경기</div>
       <div class="mute">참석 ${c.yes}명${(w.guests||[]).length?' · 용병 '+(w.guests||[]).length+'명':''}</div></div></div>
     <div class="bar" aria-hidden="true"><i style="width:${Math.round(c.yes/tot*100)}%"></i><i class="h" style="width:${Math.round(c.hold/tot*100)}%"></i></div>
-    ${me&&P(me)?`<div class="vote3">${['yes','no','hold'].map(k=>`<button type="button" class="btn ${k}${mine===k?' on':''}" data-act="vote" data-pid="${esc(me)}" data-s="${k}">${L[k]}</button>`).join('')}</div>`:'<p class="mute" style="margin:0">내 계정이 선수와 연결되지 않아 투표할 수 없어요.</p>'}
+    ${past&&!isPres()?`<p class="mute" style="margin:0">지난 경기 투표는 참여율 기록이라 회장만 수정할 수 있어요.${mine?' 내 투표: <b>'+L[mine]+'</b>':''}</p>`:me&&P(me)?`<div class="vote3">${['yes','no','hold'].map(k=>`<button type="button" class="btn ${k}${mine===k?' on':''}" data-act="vote" data-pid="${esc(me)}" data-s="${k}">${L[k]}</button>`).join('')}</div>`:'<p class="mute" style="margin:0">내 계정이 선수와 연결되지 않아 투표할 수 없어요.</p>'}
   </section>
   <section class="card" style="padding-top:12px;padding-bottom:6px">
     <div class="lhead"><h2>투표 현황</h2><span class="mute" style="font-size:13px">참석 ${c.yes} · 불참 ${c.no} · 보류 ${c.hold} · 미응답 ${c.none}</span></div>
-    ${list.map(p=>{const st=voteOf(w.id,p.id);const ctl=isMgr()&&p.id!==me?`<span class="seg">${seg(p.id,st)}</span>`:`<span class="pill p-${st||'none'}">${st?L[st]:'미응답'}</span>`;
+    ${list.map(p=>{const st=voteOf(w.id,p.id);const ctl=((past&&isPres())||(!past&&isMgr()))&&p.id!==me?`<span class="seg">${seg(p.id,st)}</span>`:`<span class="pill p-${st||'none'}">${st?L[st]:'미응답'}</span>`;
       return`<div class="prow">${avOf(p.id,44)}<div class="who"><b>${esc(p.name)}</b>${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<div class="sub">${sub(p.id)}</div></div>${ctl}</div>`}).join('')}
   </section>
   <h2>용병</h2><div class="card">${isMgr()?'<div class="row" style="margin-bottom:10px"><input type="text" id="guestName" class="grow" placeholder="용병 이름" maxlength="20"><button class="btn pri" data-act="addGuest" type="button">추가</button></div>':''}
@@ -803,7 +804,7 @@ const A={
   createWeek:()=>{const d=$('#newWeekDate').value;if(!d)return toast('날짜를 선택해 주세요');if(S.weeks.some(w=>w.id===d)){ui.week=d;ui.newWeek=false;render();return toast('이미 있는 일정이라 그 일정으로 이동했어요')}
     ui.week=d;ui.newWeek=false;save('weeks',{id:d,guests:[],teams:[],createdAt:Date.now()})},
   delWeek:b=>{if(!arm(b.dataset.k))return;const w=curWeek();if(!w)return;S.votes.filter(v=>v.id.startsWith(w.id+'__')).forEach(v=>remove('votes',v.id));ui.week=null;remove('weeks',w.id)},
-  vote:b=>{const w=curWeek();if(!w)return;if(!canVote(b.dataset.pid))return toast('본인과 매니저만 바꿀 수 있어요');const id=w.id+'__'+b.dataset.pid;const cur=voteOf(w.id,b.dataset.pid);save('votes',{id,week:w.id,pid:b.dataset.pid,status:cur===b.dataset.s?null:b.dataset.s,at:Date.now()});if(cur===b.dataset.s)toast('투표를 취소했어요')},
+  vote:b=>{const w=curWeek();if(!w)return;if(!canVote(b.dataset.pid,w.id))return toast(w.id<todayStr()?'지난 경기 투표는 회장만 수정할 수 있어요':'본인과 매니저만 바꿀 수 있어요');const id=w.id+'__'+b.dataset.pid;const cur=voteOf(w.id,b.dataset.pid);save('votes',{id,week:w.id,pid:b.dataset.pid,status:cur===b.dataset.s?null:b.dataset.s,at:Date.now()});if(cur===b.dataset.s)toast('투표를 취소했어요')},
   addGuest:()=>{const w=curWeek();const n=$('#guestName').value.trim();if(!n)return toast('용병 이름을 입력해 주세요');$('#guestName').value='';save('weeks',{...w,guests:[...(w.guests||[]),{id:'g'+newId(),name:n}]})},
   rmGuest:b=>{const w=curWeek();save('weeks',{...w,guests:(w.guests||[]).filter(g=>g.id!==b.dataset.gid),teams:(w.teams||[]).map(t=>({...t,members:t.members.filter(p=>p!==b.dataset.gid)}))})},
   tc:b=>{ui.teamCount=+b.dataset.n;render()},
@@ -866,6 +867,7 @@ function moveTargets(ctx){
 function onDrop(ctx,pid,from,to){
   if(!isMgr()||from===to)return;
   if(ctx==='teams'){const w=curWeek();if(!w)return;const teams=(w.teams||[]).map(t=>({...t,members:t.members.filter(p=>p!==pid)}));
+    if(to==='absent'&&w.id<todayStr()&&!isPres())return toast('지난 경기 투표는 회장만 수정할 수 있어요');
     if(to==='absent'){if(isGuest(pid)){save('weeks',{...w,teams,guests:(w.guests||[]).filter(g=>g.id!==pid)});toast(nameOf(pid)+' 용병 삭제')}
       else{save('weeks',{...w,teams});save('votes',{id:w.id+'__'+pid,week:w.id,pid,status:'no',at:Date.now()});toast(nameOf(pid)+' 불참 처리')}return}
     if(to.startsWith('t')){const i=+to.slice(1);if(!teams[i])return;teams[i].members.push(pid)}
