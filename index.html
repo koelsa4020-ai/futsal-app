@@ -6,6 +6,11 @@
 <title>풋살팀 매니저</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KoELSA">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -223,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-9';
+const APP_VERSION='2026.11.27-10';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -534,7 +539,12 @@ function vRate(){
 function pendingDays(){if(!me||!P(me))return[];return weeks().filter(w=>dayMatches(w.id).length&&dayPeople(w).includes(me)&&!S.ratings.some(r=>r.id===w.id+'__'+me&&r.day))}
 function rateRow(w,done){return`<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span><b>${esc(fmtDate(w.id))}</b><br><span class="mute">${dayMatches(w.id).length}경기 · 평가할 참여자 ${dayPeople(w).filter(p=>!isGuest(p)).length-1}명</span></span>
   <button class="btn ${done?'':'pri'}" data-act="rateOpen" data-id="${esc(w.id)}" type="button">${done?'평가 수정':'평가하기'}</button></div></div>`}
-function accountCard(){return`<h2>계정</h2><div class="card"><p style="margin:0">${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p>
+const isStandalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
+let installEvt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;render()});
+window.addEventListener('appinstalled',()=>{installEvt=null;toast('앱을 설치했어요');render()});
+function accountCard(){return`<h2>앱</h2><div class="card">${isStandalone()?'<p style="margin:0">홈 화면 앱으로 사용 중이에요.</p>':`<p style="margin:0 0 10px">홈 화면에 설치하면 주소창 없이 앱처럼 쓸 수 있어요.</p><button class="btn pri" style="width:100%" data-act="install" type="button">앱으로 설치하기</button>`}</div>
+  <h2>계정</h2><div class="card"><p style="margin:0">${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p>
   <p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div></div>`}
 function myRadar(){const o=SA.p&&SA.p[me];const d=o?o.days:0;
   if(d<3)return`<h2>내 능력치</h2><div class="card"><p style="margin:0">부문별 베스트 평가가 <b>3일</b> 이상 쌓이면 능력치 오각형이 나타나요.</p><div class="barw" style="margin-top:10px"><i style="width:${Math.round(d/3*100)}%"></i></div><p class="mute" style="margin:6px 0 0">지금 ${d} / 3일</p></div>`;
@@ -675,6 +685,12 @@ function drawSheet(){
         <div class="pgrid" style="grid-template-columns:repeat(4,minmax(0,1fr))">${all.map(pid=>`<button type="button" class="pbtn${pid in cs?' on':''}" style="font-size:13px" data-act="cmtPick" data-pid="${esc(pid)}" aria-pressed="${pid in cs}">${avOf(pid,44,kit(pid))}${esc(nameOf(pid))}</button>`).join('')}</div>
         ${ids.map(pid=>`<div class="cmt">${avOf(pid,36,kit(pid))}<textarea data-cpid="${esc(pid)}" maxlength="100" placeholder="${esc(nameOf(pid))}에게 한마디 (100자)" aria-label="${esc(nameOf(pid))}에게 코멘트">${esc(cs[pid])}</textarea></div>`).join('')}`+nav('평가 완료',true)}
     panel.innerHTML=head+body;return}
+  if(sh.type==='install'){const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const step=(n,t)=>`<div class="row" style="flex-wrap:nowrap;align-items:flex-start;padding:8px 0"><span class="pill p-yes" style="flex:none">${n}</span><span>${t}</span></div>`;
+    panel.innerHTML=`<h2>앱으로 설치하기</h2>${inApp?'<div class="warnbox">카카오톡 같은 앱 안에서는 설치가 안 돼요. 먼저 Chrome이나 Safari로 열어 주세요.</div>':''}
+    <h3 style="margin-top:12px">${ios?'아이폰 (Safari)':'아이폰은 Safari에서'}</h3>${step(1,'Safari로 이 주소를 열어요')}${step(2,'아래쪽 <b>공유</b> 버튼(네모에 위 화살표)을 눌러요')}${step(3,'<b>홈 화면에 추가</b> → 오른쪽 위 <b>추가</b>')}
+    <h3 style="margin-top:12px">${ios?'안드로이드는 Chrome에서':'안드로이드 (Chrome)'}</h3>${step(1,'Chrome 오른쪽 위 <b>⋮</b> 메뉴를 눌러요')}${step(2,'<b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 눌러요')}
+    <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close" type="button">닫기</button>`;return}
   if(sh.type==='past'){const ps=pastWeeks();panel.innerHTML=`<h2>지난 일정</h2>${ps.map(w=>{const n=S.matches.filter(m=>m.week===w.id&&m.status==='done').length;const y=S.votes.filter(v=>v.week===w.id&&v.status==='yes').length;
     return`<button type="button" class="btn" style="width:100%;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;text-align:left" data-act="pickWeek" data-id="${esc(w.id)}"><span>${esc(fmtDate(w.id))}</span><span class="mute">참석 ${y} · ${n}경기</span></button>`}).join('')||'<p class="mute">지난 일정이 없어요.</p>'}<button class="btn ghost" style="width:100%" data-act="close" type="button">닫기</button>`;return}
   if(sh.type==='look'){const mp=P(me);if(!mp){closeSheet();return}const L=sh.look;const pv=(o,sz)=>avatar(mp.name,sz,sh.kit,{...L,...o});
@@ -715,6 +731,7 @@ const A={
   close:closeSheet,
   pickWeek:b=>{ui.week=b.dataset.id;ui.newWeek=false;closeSheet();render();scrollTo(0,0)},
   pastOpen:()=>openSheet({type:'past'}),
+  install:async()=>{if(installEvt){const e=installEvt;installEvt=null;try{await e.prompt();await e.userChoice}catch(x){}render();return}openSheet({type:'install'})},
   backUp:()=>{ui.week=null;render()},
   toggleDraw:()=>{ui.showDraw=!ui.showDraw;render()},
   toggleNewWeek:()=>{ui.newWeek=!ui.newWeek;render()},
@@ -852,6 +869,7 @@ async function joinTeam(asMgr){
   ui.joining=false;render();
 }
 render();
+if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('/sw.js').catch(()=>{})}
 (async()=>{
   if(inKakao){try{location.href='kakaotalk://web/openExternal?url='+encodeURIComponent(location.href)}catch(e){}}
   try{fb=await loadFirebase()}catch(e){gate='error';gateErr='서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.';render();return}
