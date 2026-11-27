@@ -228,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-14';
+const APP_VERSION='2026.11.27-15';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -369,13 +369,30 @@ function dayMvps(w,R){return(w.teams||[]).map(t=>{let best=null;
 const ATTRS=[['shoot','슈팅','오늘 슈팅이 가장 좋았던 사람은?'],['pass','패스','오늘 패스가 가장 좋았던 사람은?'],['move','움직임','오늘 움직임이 가장 좋았던 사람은?'],['stamina','체력','오늘 끝까지 가장 많이 뛴 사람은?'],['defense','수비','오늘 수비가 가장 좋았던 사람은?']];
 /* 능력치: 최근 5일(참여한 날 중 부문별 투표가 있었던 날) 동안 뽑힌 비율 → 팀 1등 100, 기본 40 */
 let SA={};
-function computeAttrs(){const res={};
-  weeks().forEach(w=>{const rs=S.ratings.filter(r=>r.day&&r.match===w.id&&r.best);if(!rs.length)return;
-    dayPeople(w).filter(p=>!isGuest(p)).forEach(pid=>{const o=res[pid]=res[pid]||{days:0,raters:0,votes:{}};if(o.days>=5)return;
-      const others=rs.filter(r=>r.rater!==pid);if(!others.length)return;o.days++;o.raters+=others.length;
-      ATTRS.forEach(([k])=>{o.votes[k]=(o.votes[k]||0)+others.filter(r=>Array.isArray(r.best[k])&&r.best[k].includes(pid)).length})})});
-  const max={};for(const pid in res){const o=res[pid];o.share={};ATTRS.forEach(([k])=>{o.share[k]=o.raters?(o.votes[k]||0)/o.raters:0;max[k]=Math.max(max[k]||0,o.share[k])})}
-  const avg={},cnt={};for(const pid in res){const o=res[pid];o.val={};ATTRS.forEach(([k])=>{o.val[k]=Math.round(40+60*(max[k]?o.share[k]/max[k]:0));if(o.days>=1){avg[k]=(avg[k]||0)+o.val[k];cnt[k]=(cnt[k]||0)+1}})}
+/* 능력치(오버롤): 최근 참여한 5일 기준
+   기본 = 총평 평균(1~10점) → 30+평균×5 (총평 없으면 52)
+   + 부문별 베스트로 뽑힌 비율(팀 1등 +20)
+   + 기록 보정: 슈팅←경기당 골(+10), 패스←경기당 어시(+10), 움직임←경기당 공격포인트(+5), 체력←참여율(+6), 수비←경기당 실점이 팀 평균보다 적을수록(±6)
+   30~99로 자르고, OVR = 다섯 항목 평균 */
+function computeAttrs(){const res={};const get=pid=>res[pid]=res[pid]||{days:0,raters:0,votes:{},m:0,g:0,a:0,conc:0};
+  weeks().forEach(w=>{const ms=dayMatches(w.id);if(!ms.length)return;const rs=S.ratings.filter(r=>r.day&&r.match===w.id&&r.best);
+    dayPeople(w).filter(p=>!isGuest(p)&&P(p)).forEach(pid=>{const o=get(pid);if(o.days>=5)return;o.days++;
+      const others=rs.filter(r=>r.rater!==pid);o.raters+=others.length;
+      ATTRS.forEach(([k])=>{o.votes[k]=(o.votes[k]||0)+others.filter(r=>Array.isArray(r.best[k])&&r.best[k].includes(pid)).length});
+      ms.forEach(m=>{const sd=m.a.members.includes(pid)?'a':m.b.members.includes(pid)?'b':null;if(!sd)return;const sc=score(m);o.m++;o.conc+=sc[sd==='a'?'b':'a'];
+        (m.events||[]).forEach(e=>{if(!e.og&&e.scorer===pid)o.g++;if(e.assist===pid)o.a++})})})});
+  const ids=Object.keys(res),mx={},per=pid=>{const o=res[pid];return{g:o.m?o.g/o.m:0,a:o.m?o.a/o.m:0,ga:o.m?(o.g+o.a)/o.m:0,c:o.m?o.conc/o.m:null}};
+  let cs=0,cn=0;ids.forEach(pid=>{const o=res[pid],q=per(pid);o.share={};o.any=false;
+    ATTRS.forEach(([k])=>{o.share[k]=o.raters?(o.votes[k]||0)/o.raters:0;if(o.votes[k])o.any=true;mx[k]=Math.max(mx[k]||0,o.share[k])});
+    mx.g=Math.max(mx.g||0,q.g);mx.a=Math.max(mx.a||0,q.a);mx.ga=Math.max(mx.ga||0,q.ga);if(q.c!=null){cs+=q.c;cn++}});
+  const cAvg=cn?cs/cn:0,avg={},cnt={};
+  ids.forEach(pid=>{const o=res[pid],q=per(pid),x=ST[pid]||{};const h=(x.hist||[]).slice(0,5);const r=h.length?h.reduce((s,v)=>s+v,0)/h.length:null;
+    const base=r!=null?30+r*5:52;const pick=k=>mx[k]?20*o.share[k]/mx[k]:0;
+    const def=q.c!=null&&cAvg?Math.max(-1,Math.min(1,(cAvg-q.c)/cAvg)):0;
+    const raw={shoot:base+pick('shoot')+(mx.g?10*q.g/mx.g:0),pass:base+pick('pass')+(mx.a?10*q.a/mx.a:0),move:base+pick('move')+(mx.ga?5*q.ga/mx.ga:0),
+      stamina:base+pick('stamina')+6*(x.att||0),defense:base+pick('defense')+6*def};
+    o.val={};ATTRS.forEach(([k])=>{o.val[k]=Math.round(Math.max(30,Math.min(99,raw[k])));avg[k]=(avg[k]||0)+o.val[k];cnt[k]=(cnt[k]||0)+1});
+    o.ovr=Math.round(ATTRS.reduce((s,[k])=>s+o.val[k],0)/5);o.rating=r});
   const team={};ATTRS.forEach(([k])=>team[k]=cnt[k]?Math.round(avg[k]/cnt[k]):null);SA={p:res,team}}
 function radarSvg(val,team){const cx=150,cy=128,R=92;const pt=(i,v)=>{const a=(-90+72*i)*Math.PI/180;return[cx+R*v/100*Math.cos(a),cy+R*v/100*Math.sin(a)]};
   const poly=vs=>vs.map((v,i)=>pt(i,v).map(n=>n.toFixed(1)).join(',')).join(' ');
@@ -547,11 +564,14 @@ function accountCard(){return`<h2>앱</h2><div class="card">${isStandalone()?'<p
   <h2>계정</h2><div class="card"><p style="margin:0">${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p>
   <p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div></div>`}
 function myRadar(){const o=SA.p&&SA.p[me];const d=o?o.days:0;
-  if(!d)return`<h2>내 능력치</h2><div class="card"><p style="margin:0">아직 부문별 베스트 평가가 없어요. 경기 후 평가가 모이면 능력치 오각형이 나타나요.</p></div>`;
-  const top=ATTRS.slice().sort((a,b)=>o.val[b[0]]-o.val[a[0]]).slice(0,2).map(x=>x[1]);
-  return`<h2>내 능력치</h2><div class="card"><div class="row mute" style="justify-content:flex-end;gap:12px;font-size:12px"><span class="row" style="gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(21,112,255,.25);border:2px solid var(--acc)"></span>나</span><span class="row" style="gap:5px"><span style="width:14px;border-top:2px dashed #9aa3b2"></span>팀 평균</span></div>
-  ${radarSvg(o.val,SA.team)}<div style="background:var(--accSoft);border-radius:12px;padding:10px 12px;margin-top:6px"><span style="font-size:12px;font-weight:700;color:var(--acc)">강점</span><div style="font-weight:700">${top.join(' · ')}</div></div>
-  <p class="mute" style="margin:8px 0 0;font-size:12px">최근 ${d}일(최대 5일) 동안 부문별 베스트로 뽑힌 비율이에요. 팀 1등이 100, 기본 40에서 시작해요.${d<3?' 평가가 더 쌓일수록 정확해져요.':''}</p></div>`}
+  if(!d)return`<h2>내 능력치</h2><div class="card"><p style="margin:0">경기에 참여하면 능력치 오각형이 나타나요.</p></div>`;
+  const sorted=ATTRS.slice().sort((a,b)=>o.val[b[0]]-o.val[a[0]]);const spread=o.val[sorted[0][0]]-o.val[sorted[4][0]];
+  const strong=spread<3?'아직 두드러진 부문이 없어요 (고른 능력치)':sorted.slice(0,2).map(x=>x[1]).join(' · ');
+  return`<h2>내 능력치</h2><div class="card"><div class="row" style="justify-content:space-between;align-items:flex-end">
+    <div><span style="font:700 44px/1 'Barlow Condensed',sans-serif;color:var(--acc)">${o.ovr}</span> <span class="mute" style="font-weight:700">OVR</span></div>
+    <div class="row mute" style="gap:12px;font-size:12px"><span class="row" style="gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(21,112,255,.25);border:2px solid var(--acc)"></span>나</span><span class="row" style="gap:5px"><span style="width:14px;border-top:2px dashed #9aa3b2"></span>팀 평균</span></div></div>
+  ${radarSvg(o.val,SA.team)}<div style="background:var(--accSoft);border-radius:12px;padding:10px 12px;margin-top:6px"><span style="font-size:12px;font-weight:700;color:var(--acc)">강점</span><div style="font-weight:700">${strong}</div></div>
+  <p class="mute" style="margin:8px 0 0;font-size:12px">최근 ${d}일(최대 5일) 기준이에요. 총평 점수가 높을수록 전체가 올라가고, 부문별 베스트 표와 골·어시스트·참여율·실점이 항목마다 더해져요.${!o.any&&o.rating==null?' 평가가 쌓일수록 정확해져요.':''}</p></div>`}
 function myComments(){const short=id=>{const d=new Date(id+'T00:00:00');return isNaN(d)?id:(d.getMonth()+1)+'.'+d.getDate()};
   const list=S.ratings.filter(r=>r.day&&r.rater!==me&&r.comments&&typeof r.comments[me]==='string'&&r.comments[me].trim()).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,10);
   if(!list.length)return'';
