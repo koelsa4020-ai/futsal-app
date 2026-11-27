@@ -158,7 +158,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.26-3';
+const APP_VERSION='2026.11.27-1';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -213,8 +213,13 @@ const nameOf=id=>P(id)?.name||guestOf(id)?.name||'(삭제된 선수)';
 const isGuest=id=>!P(id)&&!!guestOf(id);
 const teamDoc=()=>S.settings.find(x=>x.id==='team')||{id:'team'};
 const mgrUids=()=>teamDoc().managerUids||[];
-const isMgr=()=>!!(authUser&&mgrUids().includes(authUser.uid));
-const isMgrPid=pid=>{const p=P(pid);return!!(p&&p.uid&&mgrUids().includes(p.uid))};
+const presUid=()=>teamDoc().presidentUid||null;
+const isPres=()=>!!(authUser&&presUid()===authUser.uid);
+const isMgr=()=>!!(authUser&&(isPres()||mgrUids().includes(authUser.uid)));
+const isPresPid=pid=>{const p=P(pid);return!!(p&&p.uid&&p.uid===presUid())};
+const isMgrPid=pid=>{const p=P(pid);return!!(p&&p.uid&&(p.uid===presUid()||mgrUids().includes(p.uid)))};
+const roleTag=pid=>isPresPid(pid)?' <span class="tag t-pro">회장</span>':isMgrPid(pid)?' <span class="tag t-semi">매니저</span>':'';
+const MGR_ONLY='매니저만 할 수 있어요';
 const canVote=pid=>isMgr()||(!!me&&pid===me);
 const voteOf=(wid,pid)=>S.votes.find(v=>v.id===wid+'__'+pid)?.status||null;
 const attendees=w=>[...S.players.filter(p=>voteOf(w.id,p.id)==='yes').map(p=>p.id),...(w.guests||[]).map(g=>g.id)];
@@ -256,21 +261,21 @@ function weekBar(w){
   const ws=weeks();
   return`<div class="row" style="margin-bottom:12px">
     ${ws.length?`<select id="weekSel" class="grow" aria-label="일정 선택">${ws.map(x=>`<option value="${esc(x.id)}"${w&&x.id===w.id?' selected':''}>${esc(fmtDate(x.id))}</option>`).join('')}</select>`:''}
-    <button class="btn" data-act="toggleNewWeek" type="button">＋ 새 일정</button></div>
-    ${ui.newWeek||!ws.length?`<div class="card"><h3>경기 일정 만들기</h3><div class="row"><input type="date" id="newWeekDate" class="grow" value="${todayStr()}"><button class="btn pri" data-act="createWeek" type="button">만들기</button></div><p class="mute" style="margin:8px 0 0">매주 경기 날짜를 하나씩 만들고, 그 날짜에 참석 투표를 받아요.</p></div>`:''}`;
+    ${isMgr()?'<button class="btn" data-act="toggleNewWeek" type="button">＋ 새 일정</button>':''}</div>
+    ${!ws.length&&!isMgr()?'<div class="card empty"><h3>아직 올라온 투표가 없어요</h3><p class="mute">매니저가 경기 일정을 올리면 여기서 참석 투표를 할 수 있어요.</p></div>':''}
+    ${isMgr()&&(ui.newWeek||!ws.length)?`<div class="card"><h3>경기 일정 만들기</h3><div class="row"><input type="date" id="newWeekDate" class="grow" value="${todayStr()}"><button class="btn pri" data-act="createWeek" type="button">만들기</button></div><p class="mute" style="margin:8px 0 0">매주 경기 날짜를 하나씩 만들고, 그 날짜에 참석 투표를 받아요.</p></div>`:''}`;
 }
 function vVote(){
-  if(!S.players.length)return empty('아직 멤버가 없어요','멤버 탭에서 팀원을 먼저 등록해 주세요.','members');
-  const w=curWeek();if(!w)return weekBar(null);
+    const w=curWeek();if(!w)return weekBar(null);
   const c={yes:0,no:0,hold:0,none:0};S.players.forEach(p=>c[voteOf(w.id,p.id)||'none']++);
   const seg=(pid,s)=>['yes','no','hold'].map(k=>`<button type="button" class="${k}${s===k?' on':''}" data-act="vote" data-pid="${esc(pid)}" data-s="${k}"${canVote(pid)?'':' disabled'}>${{yes:'참석',no:'불참',hold:'보류'}[k]}</button>`).join('');
   const mine=me&&P(me)?voteOf(w.id,me):null;
   return weekBar(w)+`
   ${me&&P(me)?`<div class="card myvote"><h3>${esc(P(me).name)}님, ${esc(fmtDate(w.id))} 경기 오시나요?</h3><div class="row">${['yes','no','hold'].map(k=>`<button type="button" class="btn big ${k}${mine===k?' on':''}" data-act="vote" data-pid="${esc(me)}" data-s="${k}">${{yes:'참석',no:'불참',hold:'보류'}[k]}</button>`).join('')}</div></div>`:`<div class="card"><p class="mute" style="margin:0 0 8px">내 계정이 아직 선수와 연결되지 않았어요.</p><button class="btn blue" data-act="go" data-tab="members" type="button">멤버 탭에서 연결하기</button></div>`}
   <div class="counts"><div><b style="color:var(--yes)">${c.yes}</b><span>참석</span></div><div><b style="color:var(--no)">${c.no}</b><span>불참</span></div><div><b style="color:var(--hold)">${c.hold}</b><span>보류</span></div><div><b>${c.none}</b><span>미응답</span></div></div>
-  <h2>투표 현황</h2><p class="mute" style="margin-top:-4px">${isMgr()?'매니저라서 모든 멤버의 참석 여부를 바꿀 수 있어요.':'참석 여부는 본인과 매니저만 바꿀 수 있어요.'}</p><div class="card"><ul class="list">${S.players.map(p=>`<li><span>${esc(p.name)}${p.id===me?' <span class="tag t-none">나</span>':''}${isMgrPid(p.id)?' <span class="tag t-pro">매니저</span>':''}</span><span class="seg">${seg(p.id,voteOf(w.id,p.id))}</span></li>`).join('')}</ul></div>
-  <h2>용병</h2><div class="card"><div class="row"><input type="text" id="guestName" class="grow" placeholder="용병 이름" maxlength="20"><button class="btn pri" data-act="addGuest" type="button">추가</button></div>
-  <div class="chips" style="margin-top:10px">${(w.guests||[]).map(g=>`<button type="button" class="chip g" data-act="rmGuest" data-gid="${esc(g.id)}" aria-label="${esc(g.name)} 삭제">${esc(g.name)} ✕</button>`).join('')||'<span class="mute">이번 주 용병이 없어요.</span>'}</div></div>
+  <h2>투표 현황</h2><p class="mute" style="margin-top:-4px">${isMgr()?'매니저라서 모든 멤버의 참석 여부를 바꿀 수 있어요.':'참석 여부는 본인과 매니저만 바꿀 수 있어요.'}</p><div class="card"><ul class="list">${S.players.map(p=>`<li><span>${esc(p.name)}${p.id===me?' <span class="tag t-none">나</span>':''}${roleTag(p.id)}</span><span class="seg">${seg(p.id,voteOf(w.id,p.id))}</span></li>`).join('')}</ul></div>
+  <h2>용병</h2><div class="card">${isMgr()?'<div class="row" style="margin-bottom:10px"><input type="text" id="guestName" class="grow" placeholder="용병 이름" maxlength="20"><button class="btn pri" data-act="addGuest" type="button">추가</button></div>':''}
+  <div class="chips">${(w.guests||[]).map(g=>isMgr()?`<button type="button" class="chip g" data-act="rmGuest" data-gid="${esc(g.id)}" aria-label="${esc(g.name)} 삭제">${esc(g.name)} ✕</button>`:`<span class="chip g">${esc(g.name)}</span>`).join('')||'<span class="mute">이번 주 용병이 없어요.</span>'}</div></div>
   ${isMgr()?`<div style="text-align:right">${armBtn('delWeek:'+w.id,'이 일정 삭제','ghost warn')}</div>`:''}`;
 }
 function teamCard(t,i,movable){
@@ -288,6 +293,7 @@ function vTeams(){
   const w=curWeek();if(!w)return weekBar(null);
   const at=attendees(w);const max=Math.max(2,Math.min(4,Math.floor(at.length/2)||2));ui.teamCount=Math.min(ui.teamCount,max);
   const has=(w.teams||[]).length;
+  if(!isMgr())return weekBar(w)+(has?`<h2>짜여진 팀</h2>${w.teams.map((t,i)=>teamCard(t,i,false)).join('')}`:empty('아직 팀이 짜이지 않았어요','매니저가 팀을 짜면 여기에 표시돼요. 참석 '+at.length+'명'))+standings(w);
   return weekBar(w)+`<div class="card"><h3>참석 ${at.length}명 <span class="mute">(멤버 ${at.length-(w.guests||[]).length} · 용병 ${(w.guests||[]).length})</span></h3>
   <div class="row" style="margin:8px 0"><span>팀 수</span><span class="seg">${[2,3,4].map(n=>`<button type="button" class="${ui.teamCount===n?'on yes':''}" data-act="tc" data-n="${n}" ${n>max?'disabled':''}>${n}팀</button>`).join('')}</span></div>
   <label class="row" style="min-height:44px"><input type="checkbox" id="balance" ${ui.balance?'checked':''} style="width:22px;height:22px;accent-color:var(--acc)"> 티어 기준으로 실력 균형 맞추기</label>
@@ -316,12 +322,12 @@ function vMatch(){
     top=`<div class="board"><div class="side"><div class="nm"><span class="dot" style="--tc:${esc(live.a.color)}"></span>${esc(live.a.name)}</div><div class="sc">${sc.a}</div></div>
     <div class="clock${live.pausedAt?'':' run'}" data-clock="${esc(live.id)}">--:--</div>
     <div class="side"><div class="nm"><span class="dot" style="--tc:${esc(live.b.color)}"></span>${esc(live.b.name)}</div><div class="sc">${sc.b}</div></div></div>
-    <div class="btnrow">${['a','b'].map(s=>`<button class="btn big goalbtn" style="--tc:${esc(live[s].color)};--tx:${txOn(live[s].color)}" data-act="goal" data-s="${s}" type="button">${esc(live[s].name)} 골</button>`).join('')}</div>
-    <div class="btnrow"><button class="btn" data-act="pause" type="button">${live.pausedAt?'다시 시작':'일시정지'}</button>${armBtn('endMatch:'+live.id,'경기 종료','blue')}</div>
-    <h2>경기 기록</h2><div class="card">${evs.length?evs.map(e=>`<div class="ev"><span class="min">${Math.floor(e.sec/60)+1}'</span><span class="grow">${evLine(live,e)}</span><button class="btn ghost" data-act="rmEv" data-id="${esc(e.id)}" type="button" aria-label="기록 삭제">취소</button></div>`).join(''):'<p class="mute" style="margin:0">골이 나면 위의 팀 버튼을 눌러 득점자와 어시스트를 기록하세요.</p>'}</div>
+    ${isMgr()?`<div class="btnrow">${['a','b'].map(s=>`<button class="btn big goalbtn" style="--tc:${esc(live[s].color)};--tx:${txOn(live[s].color)}" data-act="goal" data-s="${s}" type="button">${esc(live[s].name)} 골</button>`).join('')}</div>
+    <div class="btnrow"><button class="btn" data-act="pause" type="button">${live.pausedAt?'다시 시작':'일시정지'}</button>${armBtn('endMatch:'+live.id,'경기 종료','blue')}</div>`:'<p class="mute" style="text-align:center">경기 진행 중이에요. 기록은 매니저가 입력해요.</p>'}
+    <h2>경기 기록</h2><div class="card">${evs.length?evs.map(e=>`<div class="ev"><span class="min">${Math.floor(e.sec/60)+1}'</span><span class="grow">${evLine(live,e)}</span>${isMgr()?`<button class="btn ghost" data-act="rmEv" data-id="${esc(e.id)}" type="button" aria-label="기록 삭제">취소</button>`:''}</div>`).join(''):`<p class="mute" style="margin:0">${isMgr()?'골이 나면 위의 팀 버튼을 눌러 득점자와 어시스트를 기록하세요.':'아직 골이 없어요.'}</p>`}</div>
     <h2>출전 선수</h2>${['a','b'].map(s=>teamCard({...live[s]},0,false)).join('')}`;
   }else{const ts=w.teams||[];
-    top=ts.length<2?empty('먼저 팀을 짜 주세요','팀짜기 탭에서 팀을 만들면 경기를 시작할 수 있어요.','teams'):
+    top=!isMgr()?(done.length?'':empty('진행 중인 경기가 없어요','매니저가 경기를 시작하면 점수와 기록을 실시간으로 볼 수 있어요.')):ts.length<2?empty('먼저 팀을 짜 주세요','팀짜기 탭에서 팀을 만들면 경기를 시작할 수 있어요.','teams'):
     `<div class="card"><h3>새 경기</h3><div class="row"><select id="mA" class="grow" aria-label="첫 번째 팀">${ts.map((t,i)=>`<option value="${i}"${i===0?' selected':''}>${esc(t.name)}</option>`).join('')}</select><span class="mute">vs</span><select id="mB" class="grow" aria-label="두 번째 팀">${ts.map((t,i)=>`<option value="${i}"${i===1?' selected':''}>${esc(t.name)}</option>`).join('')}</select></div>
     <div class="row" style="margin-top:8px"><label for="mMin">경기 시간</label><input type="number" id="mMin" min="1" max="90" value="${ui.min}" style="width:90px"><span>분</span></div>
     <button class="btn pri big" style="width:100%;margin-top:12px" data-act="start" type="button">경기 시작</button></div>`}
@@ -349,11 +355,12 @@ function vRank(){
 }
 function vMembers(){
   const team=teamDoc();const players=S.players.slice().sort((x,y)=>x.name.localeCompare(y.name,'ko'));
-  return`<h2>팀 설정</h2><div class="card"><label for="teamName" class="mute">팀 이름</label><div class="row"><input type="text" id="teamName" class="grow" maxlength="24" value="${esc(team.name||'')}" placeholder="우리 풋살팀"><button class="btn" data-act="saveTeam" type="button">저장</button></div></div>
+  return`${!presUid()?`<div class="card" style="border-color:var(--acc)"><h3>회장 등록</h3><p class="mute">아직 회장이 없어요. 회장은 매니저를 지정하거나 해제할 수 있어요. 팀 대표라면 지금 등록하세요.</p><button class="btn pri" data-act="claimPres" type="button">내가 회장으로 등록</button></div>`:''}
+  <h2>팀 설정</h2><div class="card"><label for="teamName" class="mute">팀 이름</label><div class="row"><input type="text" id="teamName" class="grow" maxlength="24" value="${esc(team.name||'')}" placeholder="우리 풋살팀"><button class="btn" data-act="saveTeam" type="button">저장</button></div></div>
   <h2>멤버 ${players.length}명</h2><div class="card"><p class="mute" style="margin-top:0">팀원은 앱 주소로 들어와 구글 로그인 후 이름을 입력하면 바로 가입돼요.</p>
-  <ul class="list">${players.map(p=>{const m=isMgrPid(p.id);return`<li><span>${esc(p.name)} ${tierTag(ST[p.id]?.tier)}${m?' <span class="tag t-pro">매니저</span>':''}${p.id===me?' <span class="tag t-none">나</span>':''}<br><span class="mute">${p.uid?'구글 계정 연결됨':'계정 미연결 (예전 기록)'}</span></span>
-    <span class="row">${p.uid?`<button class="btn ghost" data-act="toggleMgr" data-pid="${esc(p.id)}" type="button">${m?'매니저 해제':'매니저 지정'}</button>${p.id!==me?armBtn('unlink:'+p.id,'연결 해제','ghost'):''}`:''}${p.id!==me?armBtn('delPlayer:'+p.id,'삭제','ghost warn'):''}</span></li>`}).join('')||'<li class="mute">아직 멤버가 없어요.</li>'}</ul></div>
-  <p class="mute">이 탭은 매니저에게만 보여요. 매니저는 멤버 관리와 모든 멤버의 참석 여부 변경, 일정·경기 기록 삭제를 할 수 있어요. "연결 해제"를 하면 그 사람은 다시 가입해야 해요.</p>
+  <ul class="list">${players.map(p=>{const m=isMgrPid(p.id);return`<li><span>${esc(p.name)} ${tierTag(ST[p.id]?.tier)}${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<br><span class="mute">${p.uid?'구글 계정 연결됨':'계정 미연결 (예전 기록)'}</span></span>
+    <span class="row">${p.uid&&isPres()&&!isPresPid(p.id)?`<button class="btn ghost" data-act="toggleMgr" data-pid="${esc(p.id)}" type="button">${m?'매니저 해제':'매니저 지정'}</button>`:''}${p.uid&&p.id!==me&&!isPresPid(p.id)&&(isPres()||!m)?armBtn('unlink:'+p.id,'연결 해제','ghost'):''}${p.id!==me&&!isPresPid(p.id)&&(isPres()||!m)?armBtn('delPlayer:'+p.id,'삭제','ghost warn'):''}</span></li>`}).join('')||'<li class="mute">아직 멤버가 없어요.</li>'}</ul></div>
+  <p class="mute">이 탭은 회장과 매니저에게만 보여요. 매니저 지정·해제는 회장만 할 수 있어요. 매니저는 투표 일정 올리기, 용병 추가, 팀 짜기, 경기 기록, 멤버 정리를 할 수 있고, 일반 멤버는 본인 참석 투표와 평가, 결과 확인만 할 수 있어요. "연결 해제"를 하면 그 사람은 다시 가입해야 해요.</p>
   <h2>앱 업데이트</h2><div class="card"><div class="row" style="justify-content:space-between"><span>현재 버전 <b>${esc(APP_VERSION)}</b>${ui.newVer?`<br><span style="color:var(--acc)">새 버전 ${esc(ui.newVer)} 있음</span>`:''}</span>
   ${ui.newVer?'<button class="btn pri" data-act="doUpdate" type="button">지금 업데이트</button>':`<button class="btn" data-act="checkUpdate" type="button" ${ui.checking?'disabled':''}>${ui.checking?'확인 중…':'업데이트 확인'}</button>`}</div>
   <p class="mute" style="margin:8px 0 0">새 버전이 나오면 모든 팀원 화면 위에 알림이 떠요. 기록은 서버에 저장돼서 업데이트해도 그대로예요.</p></div>`;
@@ -370,7 +377,7 @@ function vGate(){
     <button class="btn google" data-act="login" type="button">${GSVG}Google로 로그인</button>${ui.loginErr?`<p class="err">${esc(ui.loginErr)}</p>`:''}</div>`;
   const who=`<p class="mute" style="margin-top:14px">${esc(authUser.email||'')}<button class="linkbtn" data-act="logout" type="button">로그아웃</button></p>`;
   const nameBox=(act,label)=>`<div class="row" style="margin-top:10px"><input type="text" id="joinName" class="grow" maxlength="20" value="${esc(authUser.displayName||'')}" placeholder="팀에서 부르는 이름" aria-label="이름"><button class="btn pri" data-act="${act}" type="button" ${ui.joining?'disabled':''}>${ui.joining?'가입 중…':label}</button></div><p class="mute" style="font-size:14px">예전에 등록된 같은 이름이 있으면 그 기록과 이어져요.</p>`;
-  if(gate==='bootstrap')return`<div class="card gate"><h2>첫 매니저로 시작하기</h2><p>아직 아무도 가입하지 않은 팀이에요. 이름을 입력하면 이 계정이 첫 매니저가 돼요.</p>${nameBox('bootstrap','매니저로 시작')}${who}</div>`;
+  if(gate==='bootstrap')return`<div class="card gate"><h2>회장으로 시작하기</h2><p>아직 아무도 가입하지 않은 팀이에요. 이름을 입력하면 이 계정이 회장(첫 매니저)이 돼요.</p>${nameBox('bootstrap','회장으로 시작')}${who}</div>`;
   return`<div class="card gate"><h2>팀 가입</h2><p>팀에서 부르는 이름을 입력하면 바로 가입돼요.</p>${nameBox('join','가입하기')}${who}</div>`;
 }
 
@@ -412,7 +419,7 @@ function openSheet(s){sh=s;drawSheet();sheet.hidden=false}
 function closeSheet(){sh=null;sheet.hidden=true}
 function drawSheet(){
   if(!sh)return;
-  if(sh.type==='me'){const mp=me&&P(me);panel.innerHTML=`<h2>내 계정</h2><p>${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p><p>연결된 선수: <b>${esc(mp?mp.name:'없음')}</b>${isMgr()?' <span class="tag t-pro">매니저</span>':''}</p><p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div><button class="btn ghost" style="margin-top:8px;width:100%" data-act="close" type="button">닫기</button>`;return}
+  if(sh.type==='me'){const mp=me&&P(me);panel.innerHTML=`<h2>내 계정</h2><p>${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p><p>연결된 선수: <b>${esc(mp?mp.name:'없음')}</b>${isPres()?' <span class="tag t-pro">회장</span>':isMgr()?' <span class="tag t-semi">매니저</span>':''}</p><p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div><button class="btn ghost" style="margin-top:8px;width:100%" data-act="close" type="button">닫기</button>`;return}
   if(sh.type==='goal'){const m=S.matches.find(x=>x.id===sh.mid);if(!m){closeSheet();return}
     const side=sh.side,opp=side==='a'?'b':'a';let body='';
     if(sh.step==='scorer'){body=`<h2>${esc(m[side].name)} 골! 누가 넣었나요?</h2><div class="pick">${m[side].members.map(pid=>`<button class="btn" data-act="gScorer" data-pid="${esc(pid)}" type="button">${esc(nameOf(pid))}</button>`).join('')}</div>
@@ -475,19 +482,23 @@ const A={
   sort:b=>{ui.sort=b.dataset.k;render()},
   saveTeam:()=>{save('settings',{...teamDoc(),name:$('#teamName').value.trim()||'우리 풋살팀'});toast('팀 이름을 저장했어요')},
   addPlayer:()=>{const n=$('#newName').value.trim();if(!n)return toast('이름을 입력해 주세요');if(S.players.some(p=>p.name===n))return toast('같은 이름이 이미 있어요');$('#newName').value='';save('players',{id:'p'+newId(),name:n,createdAt:Date.now()})},
-  toggleMgr:b=>{if(!isMgr())return;const p=P(b.dataset.pid);if(!p||!p.uid)return toast('구글 계정이 연결된 멤버만 매니저가 될 수 있어요');const ms=mgrUids();
-    if(ms.includes(p.uid)){dropMgr(p.uid)}else save('settings',{...teamDoc(),managerUids:[...ms,p.uid]})},
+  toggleMgr:b=>{const p=P(b.dataset.pid);if(!p||!p.uid)return toast('구글 계정이 연결된 멤버만 매니저가 될 수 있어요');if(p.uid===presUid())return;const ms=mgrUids();
+    save('settings',{...teamDoc(),managerUids:ms.includes(p.uid)?ms.filter(x=>x!==p.uid):[...ms,p.uid]});toast(p.name+(ms.includes(p.uid)?'님 매니저 해제':'님을 매니저로 지정했어요'))},
+  claimPres:()=>{if(presUid())return;save('settings',{...teamDoc(),presidentUid:authUser.uid});toast('회장으로 등록했어요')},
   checkUpdate:()=>checkUpdate(true),
   doUpdate,
   delPlayer:b=>{if(!arm(b.dataset.k))return;const id=b.dataset.k.split(':')[1];const p=P(id);if(p&&p.uid){if(!dropMgr(p.uid))return;remove('users',p.uid)}remove('players',id)}
 };
-function dropMgr(u){const ms=mgrUids();if(!ms.includes(u))return true;if(ms.length===1){toast('매니저는 최소 한 명 있어야 해요');return false}save('settings',{...teamDoc(),managerUids:ms.filter(x=>x!==u)});return true}
+function dropMgr(u){if(u===presUid()){toast('회장은 연결 해제하거나 삭제할 수 없어요');return false}const ms=mgrUids();if(!ms.includes(u))return true;if(!isPres()){toast('매니저는 회장만 바꿀 수 있어요');return false}save('settings',{...teamDoc(),managerUids:ms.filter(x=>x!==u)});return true}
 function addEvent(x){const side=sh.side;const m=S.matches.find(y=>y.id===sh.mid);closeSheet();if(!m||m.status!=='live')return;
   save('matches',{...m,events:[...(m.events||[]),{id:'e'+newId(),team:side,sec:Math.floor(elapsed(m)),...x}]});toast(x.og?'자책골 기록':'골 기록: '+nameOf(x.scorer))}
-function onClick(e){const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const f=A[b.dataset.act];if(f)f(b)}
+const MGR_ACTS=new Set(['toggleNewWeek','createWeek','delWeek','addGuest','rmGuest','tc','draw','move','start','pause','endMatch','delMatch','goal','gScorer','gAssist','gOg','rmEv','saveTeam','unlink','delPlayer']);
+function onClick(e){const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const act=b.dataset.act;
+  if(MGR_ACTS.has(act)&&!isMgr())return toast(MGR_ONLY);if((act==='toggleMgr'||act==='claimPres')&&!(act==='claimPres'?isMgr():isPres()))return toast('회장만 할 수 있어요');
+  const f=A[act];if(f)f(b)}
 document.addEventListener('click',e=>{if(e.target.closest('#tabs')){const b=e.target.closest('[data-tab]');if(b)A.go(b);return}if(e.target.closest('#meBtn'))return A.pickMe();if(e.target.closest('#app,#panel,#note'))onClick(e)});
 document.addEventListener('change',e=>{if(e.target.id==='weekSel'){ui.week=e.target.value;render()}if(e.target.id==='balance')ui.balance=e.target.checked});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'){const m={guestName:'addGuest',teamName:'saveTeam',joinName:gate==='bootstrap'?'bootstrap':'join'}[e.target.id];if(m)A[m]()}if(e.key==='Escape')closeSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){const m={guestName:isMgr()?'addGuest':null,teamName:isMgr()?'saveTeam':null,joinName:gate==='bootstrap'?'bootstrap':'join'}[e.target.id];if(m)A[m]()}if(e.key==='Escape')closeSheet()});
 
 /* ---------- auth & boot ---------- */
 const baseUnsubs=[],dataUnsubs=[];let reqUnsub=null,dataTimer=null,preUnsub=null;
@@ -515,7 +526,7 @@ async function joinTeam(asMgr){
   const u=authUser;if(S.players.some(p=>p.name===n&&p.uid&&p.uid!==u.uid))return toast('이미 다른 사람이 쓰는 이름이에요');
   ui.joining=true;render();
   try{
-    if(asMgr){const t=teamDoc();await store.set('settings','team',{name:t.name||'우리 풋살팀',managerUids:[u.uid]})}
+    if(asMgr){const t=teamDoc();await store.set('settings','team',{name:t.name||'우리 풋살팀',managerUids:[u.uid],presidentUid:u.uid})}
     const ex=S.players.find(p=>p.name===n&&!p.uid);const pid=ex?ex.id:'p'+newId();
     const body=ex?(({id,...d})=>({...d,uid:u.uid}))(ex):{name:n,uid:u.uid,createdAt:Date.now()};
     await store.set('players',pid,JSON.parse(JSON.stringify(body)));
