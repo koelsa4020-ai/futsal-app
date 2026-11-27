@@ -223,7 +223,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-8';
+const APP_VERSION='2026.11.27-9';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -421,7 +421,10 @@ function vVote(){
   const L={yes:'참석',no:'불참',hold:'보류'};
   const seg=(pid,st)=>['yes','no','hold'].map(k=>`<button type="button" class="${k}${st===k?' on':''}" data-act="vote" data-pid="${esc(pid)}" data-s="${k}">${L[k]}</button>`).join('');
   const mine=me&&P(me)?voteOf(w.id,me):null;const tot=S.players.length||1;const past=w.id<todayStr();
-  const sub=pid=>{const x=ST[pid]||{};return(x.tier?x.tier.label:'배치 전')+' · 골 '+(x.g||0)};
+  const prev=weeks().filter(x=>x.id<w.id);
+  const streak=pid=>{if(!prev.length)return'';const yes=voteOf(prev[0].id,pid)==='yes';let n=0;for(const x of prev){if((voteOf(x.id,pid)==='yes')!==yes)break;n++}
+    return n>=2?` · <span style="color:${yes?'var(--acc)':'var(--no)'};font-weight:700">${n}연속 ${yes?'참석':'불참'}</span>`:` · 지난번 ${yes?'참석':'불참'}`};
+  const sub=pid=>{const x=ST[pid]||{};return esc(x.tier?x.tier.label:'배치 전')+streak(pid)};
   const order={yes:0,hold:1,no:2,none:3};
   const list=S.players.slice().sort((a,b)=>(a.id===me?-1:b.id===me?1:0)||order[voteOf(w.id,a.id)||'none']-order[voteOf(w.id,b.id)||'none']||a.name.localeCompare(b.name,'ko'));
   return weekBar(w)+`
@@ -436,7 +439,7 @@ function vVote(){
   <section class="card" style="padding-top:12px;padding-bottom:6px">
     <div class="lhead"><h2>투표 현황</h2><span class="mute" style="font-size:13px">참석 ${c.yes} · 불참 ${c.no} · 보류 ${c.hold} · 미응답 ${c.none}</span></div>
     ${list.map(p=>{const st=voteOf(w.id,p.id);const ctl=isMgr()&&p.id!==me?`<span class="seg">${seg(p.id,st)}</span>`:`<span class="pill p-${st||'none'}">${st?L[st]:'미응답'}</span>`;
-      return`<div class="prow">${avOf(p.id,44)}<div class="who"><b>${esc(p.name)}</b>${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<div class="sub">${esc(sub(p.id))}</div></div>${ctl}</div>`}).join('')}
+      return`<div class="prow">${avOf(p.id,44)}<div class="who"><b>${esc(p.name)}</b>${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<div class="sub">${sub(p.id)}</div></div>${ctl}</div>`}).join('')}
   </section>
   <h2>용병</h2><div class="card">${isMgr()?'<div class="row" style="margin-bottom:10px"><input type="text" id="guestName" class="grow" placeholder="용병 이름" maxlength="20"><button class="btn pri" data-act="addGuest" type="button">추가</button></div>':''}
   <div class="chips">${(w.guests||[]).map(g=>isMgr()?`<button type="button" class="chip g" data-act="rmGuest" data-gid="${esc(g.id)}" aria-label="${esc(g.name)} 삭제">${esc(g.name)} ✕</button>`:`<span class="chip g">${esc(g.name)}</span>`).join('')||'<span class="mute">이번 주 용병이 없어요.</span>'}</div></div>
