@@ -62,6 +62,13 @@ button,input,select{font:inherit;color:inherit}
 .dz{transition:background .15s,outline-color .15s;outline:2px dashed transparent;outline-offset:-2px}
 .dz.over{background:var(--accSoft)!important;outline-color:var(--acc)}
 .chip.dragging{opacity:.3}
+.lk{margin-top:12px}.lk-t{font-size:13px;font-weight:700;color:var(--mute);margin-bottom:4px}
+.lk-o{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin}
+.lkb{flex:none;border:2px solid transparent;border-radius:50%;padding:2px;background:none;cursor:pointer;min-width:48px;min-height:48px;display:flex;align-items:center;justify-content:center}
+.lkb.on{border-color:var(--acc)}
+.lkb.txt{border-radius:12px;border:1px solid light-dark(#dfe3ea,#2a3650);padding:0 14px;font-size:14px}.lkb.txt.on{border:2px solid var(--acc);color:var(--acc);font-weight:700}
+.sw{display:block;width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+.lk-prev{display:flex;align-items:center;gap:16px}
 .dz,.dz *{-webkit-user-select:none;user-select:none}
 .drag-ghost{position:fixed;z-index:40;pointer-events:none;transform:translate(-50%,-60%) scale(1.08);box-shadow:0 10px 24px rgba(0,0,0,.22);background:var(--card)!important}
 .pool{border:2px dashed light-dark(#cfd6e2,#2d3a55);background:transparent}
@@ -195,7 +202,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-5';
+const APP_VERSION='2026.11.27-6';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -207,16 +214,23 @@ const txOn=c=>['#c6e600','#f2f2f2'].includes(c)?'#111':'#fff';
 const KITS={home:{m:'#2456d6',d:'#1a43b0',st:'#151515',s1:'#f4b82e',s2:'#ffffff',c:'#151515'},away:{m:'#f7931e',d:'#e07b0c',st:'#ffffff',s1:'#1b1b1b',s2:'#ffffff',c:'#1b1b1b'}};
 function kitFor(c){if(!c||['#2456d6','#2a6cff'].includes(c))return KITS.home;if(['#f7931e','#ff6a13'].includes(c))return KITS.away;return{m:c,d:c,st:'#ffffff',s1:'#1b1b1b',s2:'#ffffff',c:'#1b1b1b'}}
 let avN=0;
-function avatar(seed,size,kit){
-  seed=String(seed||'?');const K=typeof kit==='object'?kit:(kit==='away'?KITS.away:KITS.home);
-  let h=2166136261;for(const c of seed){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0}
+const SKINS=[['#ffe0c7','#f2c3a2'],['#f9d2b0','#e8b48c'],['#efbf98','#d9a077'],['#dca57a','#c08559'],['#c08a60','#a06c45']];
+const HAIR_COLORS=['#231c18','#3d2a1e','#5a3a24','#8a5a35','#1c1d26','#c49a5a'];
+const BG_COLORS=['#e6eeff','#fff0de','#e3f5ea','#efe8ff','#fde7ec','#e3f3fa'];
+function seedHash(seed){let h=2166136261;for(const c of String(seed||'?')){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0}
   const mix=x=>{x^=x>>>16;x=Math.imul(x,0x7feb352d)>>>0;x^=x>>>15;x=Math.imul(x,0x846ca68b)>>>0;x^=x>>>16;return x>>>0};
-  const r=(n,k)=>mix((h+Math.imul(k,0x9e3779b9))>>>0)%n;
-  const SK=[['#ffe0c7','#f2c3a2'],['#f9d2b0','#e8b48c'],['#efbf98','#d9a077'],['#dca57a','#c08559'],['#c08a60','#a06c45']];
-  const HC=['#231c18','#2f241d','#3d2a1e','#1c1d26','#5a3a24','#231c18'];
-  const BG=['#e6eeff','#fff0de','#e3f5ea','#efe8ff','#fde7ec','#e3f3fa'];
-  const [sk,skd]=SK[[0,0,1,1,1,2,2,3,4][r(9,3)]],hc=HC[r(6,11)],bg=BG[r(6,13)];
-  const hair=[0,0,1,2,3,3,3,4,5][r(9,1)],eye=r(4,7),mouth=r(4,31),brow=r(3,19),blush=r(3,17)!==0;
+  return(n,k)=>mix((h+Math.imul(k,0x9e3779b9))>>>0)%n}
+function baseLook(seed){const r=seedHash(seed);const e=r(4,7);
+  return{skin:[0,0,1,1,1,2,2,3,4][r(9,3)],hair:[0,0,1,2,3,3,3,4,5][r(9,1)],hairColor:['#231c18','#2f241d','#3d2a1e','#1c1d26','#5a3a24','#231c18'][r(6,11)],
+    bg:BG_COLORS[r(6,13)],eye:e===3?0:e,mouth:r(4,31),brow:r(3,19),blush:r(3,17)!==0}}
+/* 저장된 꾸미기 값은 허용된 값만 사용 */
+function cleanLook(l){const o={};if(!l||typeof l!=='object')return o;const I=(k,n)=>{if(Number.isInteger(l[k])&&l[k]>=0&&l[k]<n)o[k]=l[k]};
+  I('skin',5);I('hair',6);I('eye',3);I('mouth',4);I('brow',3);if(HAIR_COLORS.includes(l.hairColor))o.hairColor=l.hairColor;if(BG_COLORS.includes(l.bg))o.bg=l.bg;if(typeof l.blush==='boolean')o.blush=l.blush;return o}
+function avatar(seed,size,kit,look){
+  seed=String(seed||'?');const K=typeof kit==='object'?kit:(kit==='away'?KITS.away:KITS.home);
+  const LK={...baseLook(seed),...cleanLook(look)};
+  const [sk,skd]=SKINS[LK.skin],hc=LK.hairColor,bg=LK.bg;
+  const hair=LK.hair,eye=LK.eye,mouth=LK.mouth,brow=LK.brow,blush=LK.blush;
   const by=[34.5,35.5,34][brow],ba=[0,1.6,-1.2][brow],ink='#2a2220',id='av'+(++avN);
   const HAIR=[
    `<path d="M26.5 40C24 22 36 12.5 51 12.5C66 12.5 77 21 73.5 40C72.5 33 70 29.5 66 27.5C58 31 44 31.5 35 28.5C30 31 28 35 26.5 40Z" fill="${hc}"/><path d="M50 14.5C56 15 62 17 66 21" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2.2" stroke-linecap="round"/>`,
@@ -239,11 +253,11 @@ function avatar(seed,size,kit){
    +`<ellipse cx="25.5" cy="45" rx="5" ry="6.2" fill="${sk}"/><ellipse cx="74.5" cy="45" rx="5" ry="6.2" fill="${sk}"/><ellipse cx="26" cy="45.5" rx="2.4" ry="3.4" fill="${skd}"/><ellipse cx="74" cy="45.5" rx="2.4" ry="3.4" fill="${skd}"/>`
    +`<path d="M27 40C27 24 37 16 50 16C63 16 73 24 73 40C73 55 64 66 50 66C36 66 27 55 27 40Z" fill="${sk}"/>`+HAIR[hair]
    +`<path d="M35.5 ${by+ba}Q40 ${by-1.8} 44.5 ${by}M55.5 ${by}Q60 ${by-1.8} 64.5 ${by+ba}" fill="none" stroke="${hc}" stroke-width="2.6" stroke-linecap="round"/>`
-   +EYES[eye===3?0:eye]+`<path d="M48.5 49Q50 50.6 51.5 49" fill="none" stroke="${skd}" stroke-width="2" stroke-linecap="round"/>`
+   +EYES[eye]+`<path d="M48.5 49Q50 50.6 51.5 49" fill="none" stroke="${skd}" stroke-width="2" stroke-linecap="round"/>`
    +(blush?`<g fill="#ff8a7a" opacity=".35"><ellipse cx="34" cy="51.5" rx="4.2" ry="2.6"/><ellipse cx="66" cy="51.5" rx="4.2" ry="2.6"/></g>`:'')
    +MOUTH[mouth]+`</g></g></svg></span>`;
 }
-const avOf=(pid,size,kit)=>avatar(nameOf(pid),size,kit);
+const avOf=(pid,size,kit)=>avatar(nameOf(pid),size,kit,P(pid)?.look);
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const ui={tab:ls.get('futsal.tab')||'vote',week:null,teamCount:2,balance:false,min:12,sort:'tier',armed:null,newWeek:false,loginErr:''};
 let me=null,authUser=null,gate='loading',gateErr='';
@@ -458,9 +472,9 @@ function vRate(){
   if(!me||!P(me))return`<div class="card empty"><h3>내 계정이 선수와 연결되지 않았어요</h3><p class="mute">평가는 경기에 뛴 멤버 본인만 할 수 있어요.</p>${isMgr()?'<button class="btn pri" data-act="go" data-tab="members" type="button">멤버 탭에서 연결하기</button>':''}</div>`;
   const days=weeks().filter(w=>dayMatches(w.id).length&&dayPeople(w).includes(me));
   if(!days.length)return empty('평가할 경기가 없어요','참석한 날 경기가 끝나면 여기에서 그날 참여자 모두를 평가할 수 있어요.');
-  return`<h2>그날 경기 평가</h2><p class="mute" style="margin-top:-4px">하루에 한 번, 그날 참여한 선수 모두를 1~10점으로 평가해요. 팀마다 평균이 가장 높은 선수가 그날의 MVP가 되고, 최근 5일 평균으로 티어가 정해져요.</p>
+  return`<h2>그날 경기 평가</h2><p class="mute" style="margin-top:-4px">하루에 한 번, 그날 참여한 멤버 모두를 1~10점으로 평가해요(용병 제외). 팀마다 평균이 가장 높은 선수가 그날의 MVP가 되고, 최근 5일 평균으로 티어가 정해져요.</p>
   ${days.map(w=>{const n=dayMatches(w.id).length;const done=S.ratings.some(r=>r.id===w.id+'__'+me&&r.day);
-    return`<div class="card"><div class="row" style="justify-content:space-between"><span><b>${esc(fmtDate(w.id))}</b><br><span class="mute">${n}경기 · 평가할 참여자 ${dayPeople(w).length-1}명</span></span>
+    return`<div class="card"><div class="row" style="justify-content:space-between"><span><b>${esc(fmtDate(w.id))}</b><br><span class="mute">${n}경기 · 평가할 참여자 ${dayPeople(w).filter(p=>!isGuest(p)).length-1}명</span></span>
     <button class="btn ${done?'':'pri'}" data-act="rateOpen" data-id="${esc(w.id)}" type="button">${done?'평가 수정':'평가하기'}</button></div></div>`}).join('')}`;
 }
 function vRank(){
@@ -516,7 +530,7 @@ function render(){
     $('#tabs').classList.toggle('mgr',isMgr());
     computeStats();
     const w=curWeek();$('#subTitle').textContent=w?fmtDate(w.id)+' 경기 · 참석 '+attendees(w).length+'명':'경기 일정을 만들어 주세요';
-    const mp=me&&P(me);if(ui.meKey!==(mp?mp.name:'')){ui.meKey=mp?mp.name:'';$('#meBtn').innerHTML=mp?avatar(mp.name,44):esc((authUser?.displayName||'나').slice(0,1))}
+    const mp=me&&P(me);const mk=mp?mp.name+JSON.stringify(mp.look||{}):'';if(ui.meKey!==mk){ui.meKey=mk;$('#meBtn').innerHTML=mp?avOf(me,44):esc((authUser?.displayName||'나').slice(0,1))}
     document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===ui.tab));
     const notes=[];if(slowNote)notes.push(slowNote);
     $('#note').innerHTML=(ui.newVer?`<div class="row" style="justify-content:space-between;background:var(--acc);color:#fff"><span>새 버전이 나왔어요. 업데이트해도 기록은 그대로예요.</span><button class="btn" style="background:#fff;color:#111;border:0" data-act="doUpdate" type="button">업데이트</button></div>`:'')
@@ -540,7 +554,7 @@ function openSheet(s){sh=s;drawSheet();sheet.hidden=false}
 function closeSheet(){sh=null;sheet.hidden=true}
 function drawSheet(){
   if(!sh)return;
-  if(sh.type==='me'){const mp=me&&P(me);panel.innerHTML=`<div class="row" style="flex-wrap:nowrap;gap:14px">${mp?avOf(me,72):''}<h2 style="margin:0">내 계정</h2></div><p>${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p><p>연결된 선수: <b>${esc(mp?mp.name:'없음')}</b>${isPres()?' <span class="tag t-pro">회장</span>':isMgr()?' <span class="tag t-semi">매니저</span>':''}</p><p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div><button class="btn ghost" style="margin-top:8px;width:100%" data-act="close" type="button">닫기</button>`;return}
+  if(sh.type==='me'){const mp=me&&P(me);panel.innerHTML=`<div class="row" style="flex-wrap:nowrap;gap:14px">${mp?avOf(me,72):''}<h2 style="margin:0">내 계정</h2></div><p>${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p><p>연결된 선수: <b>${esc(mp?mp.name:'없음')}</b>${isPres()?' <span class="tag t-pro">회장</span>':isMgr()?' <span class="tag t-semi">매니저</span>':''}</p>${mp?'<button class="btn pri" style="width:100%;margin-bottom:12px" data-act="lookOpen" type="button">내 캐릭터 꾸미기</button>':''}<p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div><button class="btn ghost" style="margin-top:8px;width:100%" data-act="close" type="button">닫기</button>`;return}
   if(sh.type==='goal'){const m=S.matches.find(x=>x.id===sh.mid);if(!m){closeSheet();return}
     const side=sh.side,opp=side==='a'?'b':'a';let body='';
     if(sh.step==='scorer'){body=`<h2>${esc(m[side].name)} 골! 누가 넣었나요?</h2><div class="pick">${m[side].members.map(pid=>`<button class="btn" data-act="gScorer" data-pid="${esc(pid)}" type="button">${esc(nameOf(pid))}</button>`).join('')}</div>
@@ -548,13 +562,29 @@ function drawSheet(){
     else{body=`<h2>어시스트는 누구?</h2><p class="mute">득점: ${esc(nameOf(sh.scorer))}</p><div class="pick"><button class="btn pri" data-act="gAssist" data-pid="" type="button">어시스트 없음</button>${m[side].members.filter(p=>p!==sh.scorer).map(pid=>`<button class="btn" data-act="gAssist" data-pid="${esc(pid)}" type="button">${esc(nameOf(pid))}</button>`).join('')}</div>`}
     panel.innerHTML=body+`<button class="btn ghost" style="margin-top:12px;width:100%" data-act="close" type="button">취소</button>`;return}
   if(sh.type==='rate'){const w=S.weeks.find(x=>x.id===sh.wid);if(!w){closeSheet();return}
-    const ps=new Set(dayPeople(w));ps.delete(me);const teams=w.teams||[];const myT=teams.findIndex(t=>t.members.includes(me));
+    const ps=new Set(dayPeople(w).filter(p=>!isGuest(p)));ps.delete(me);const teams=w.teams||[];const myT=teams.findIndex(t=>t.members.includes(me));
     const row=(pid,kit)=>`<div class="rate"><label for="r_${esc(pid)}" class="row" style="flex-wrap:nowrap">${avOf(pid,32,kit)}${esc(nameOf(pid))}${isGuest(pid)?' <span class="mute">용병</span>':''}</label><output id="o_${esc(pid)}">${sh.draft[pid]}</output><input type="range" min="1" max="10" step="1" id="r_${esc(pid)}" data-pid="${esc(pid)}" value="${sh.draft[pid]}"></div>`;
     const order=[...(myT>=0?[myT]:[]),...teams.map((t,i)=>i).filter(i=>i!==myT)];let html='';const used=new Set();
     order.forEach(i=>{const t=teams[i];const ids=t.members.filter(p=>ps.has(p));ids.forEach(p=>used.add(p));if(ids.length)html+=`<h3 style="margin-top:14px">${i===myT?'우리 팀':'상대 팀'} · ${esc(t.name)}</h3>${ids.map(p=>row(p,kitFor(t.color))).join('')}`});
     const rest=[...ps].filter(p=>!used.has(p));if(rest.length)html+=`<h3 style="margin-top:14px">그 밖의 참여자</h3>${rest.map(p=>row(p)).join('')}`;
     panel.innerHTML=`<h2>${esc(fmtDate(w.id))} 경기 평가</h2><p class="mute">그날 전체 경기를 보고 1점(아쉬움) ~ 10점(최고)으로 평가해 주세요.</p>${html||'<p class="mute">평가할 선수가 없어요.</p>'}
     <div class="btnrow"><button class="btn ghost" data-act="close" type="button">취소</button><button class="btn pri" data-act="rateSave" type="button">평가 저장</button></div>`;return}
+  if(sh.type==='look'){const mp=P(me);if(!mp){closeSheet();return}const L=sh.look;const pv=(o,sz)=>avatar(mp.name,sz,sh.kit,{...L,...o});
+    const row=(title,key,vals,show,txt)=>`<div class="lk"><div class="lk-t">${title}</div><div class="lk-o">${vals.map(v=>`<button type="button" class="lkb${txt?' txt':''}${L[key]===v?' on':''}" data-act="lookSet" data-k="${key}" data-v="${esc(JSON.stringify(v))}" aria-pressed="${L[key]===v}">${show(v)}</button>`).join('')}</div></div>`;
+    const sw=c=>`<span class="sw" style="background:${c}"></span>`;const n=k=>[...Array(k).keys()];
+    panel.innerHTML=`<h2>내 캐릭터 꾸미기</h2>
+    <div class="lk-prev">${pv({},112)}<div style="display:flex;flex-direction:column;gap:8px;flex:1">
+      <div class="seg" style="align-self:flex-start"><button type="button" class="${sh.kit==='home'?'on yes':''}" data-act="lookKit" data-v="home">홈</button><button type="button" class="${sh.kit==='away'?'on yes':''}" data-act="lookKit" data-v="away">원정</button></div>
+      <div class="row"><button class="btn" data-act="lookRandom" type="button">랜덤</button><button class="btn ghost" data-act="lookReset" type="button">처음 얼굴</button></div></div></div>
+    ${row('피부','skin',n(5),i=>sw(SKINS[i][0]))}
+    ${row('머리 모양','hair',n(6),i=>pv({hair:i},44))}
+    ${row('머리 색','hairColor',HAIR_COLORS,sw)}
+    ${row('눈썹','brow',n(3),i=>pv({brow:i},44))}
+    ${row('눈','eye',n(3),i=>pv({eye:i},44))}
+    ${row('입','mouth',n(4),i=>pv({mouth:i},44))}
+    ${row('볼터치','blush',[true,false],v=>v?'있음':'없음',true)}
+    ${row('배경','bg',BG_COLORS,sw)}
+    <div class="btnrow"><button class="btn ghost" data-act="close" type="button">취소</button><button class="btn pri" data-act="lookSave" type="button">저장</button></div>`;return}
   if(sh.type==='move'){const L=moveTargets(sh.ctx);
     panel.innerHTML=`<h2>${esc(nameOf(sh.pid))} 옮기기</h2><div class="pick">${L.map(x=>`<button class="btn${x.zone===sh.from?' pri':''}${x.zone==='absent'?' warn':''}" data-act="moveTo" data-zone="${x.zone}" type="button" ${x.zone===sh.from?'disabled':''}>${esc(x.label)}</button>`).join('')}</div><button class="btn ghost" style="margin-top:12px;width:100%" data-act="close" type="button">닫기</button>`}
 }
@@ -605,8 +635,14 @@ const A={
   gOg:b=>addEvent({scorer:b.dataset.pid,assist:null,og:true}),
   rmEv:b=>{const m=liveMatch();if(m)save('matches',{...m,events:(m.events||[]).filter(e=>e.id!==b.dataset.id)})},
   rateOpen:b=>{const wid=b.dataset.id;const ex=S.ratings.find(r=>r.id===wid+'__'+me&&r.day);const draft={};
-    {const w=S.weeks.find(x=>x.id===wid);if(w)dayPeople(w).forEach(pid=>{if(pid!==me)draft[pid]=ex?.scores?.[pid]??5})}openSheet({type:'rate',wid,draft})},
+    {const w=S.weeks.find(x=>x.id===wid);if(w)dayPeople(w).forEach(pid=>{if(pid!==me&&!isGuest(pid))draft[pid]=ex?.scores?.[pid]??5})}openSheet({type:'rate',wid,draft})},
   rateSave:()=>{const wid=sh.wid;save('ratings',{id:wid+'__'+me,match:wid,week:wid,day:true,rater:me,scores:{...sh.draft},at:Date.now()});closeSheet();toast('평가를 저장했어요')},
+  lookOpen:()=>{const mp=P(me);if(!mp)return;openSheet({type:'look',kit:'home',look:{...baseLook(mp.name),...cleanLook(mp.look)}})},
+  lookSet:b=>{let v;try{v=JSON.parse(b.dataset.v)}catch(e){return}sh.look={...sh.look,[b.dataset.k]:v};drawSheet()},
+  lookKit:b=>{sh.kit=b.dataset.v;drawSheet()},
+  lookRandom:()=>{const R=n=>Math.floor(Math.random()*n);sh.look={skin:R(5),hair:R(6),hairColor:HAIR_COLORS[R(6)],bg:BG_COLORS[R(6)],eye:R(3),mouth:R(4),brow:R(3),blush:Math.random()<.6};drawSheet()},
+  lookReset:()=>{sh.look=baseLook(P(me).name);drawSheet()},
+  lookSave:()=>{const p=P(me);if(!p)return;save('players',{...p,look:cleanLook(sh.look)});closeSheet();toast('캐릭터를 저장했어요')},
   sort:b=>{ui.sort=b.dataset.k;render()},
   saveTeam:()=>{save('settings',{...teamDoc(),name:$('#teamName').value.trim()||'우리 풋살팀'});toast('팀 이름을 저장했어요')},
   addPlayer:()=>{const n=$('#newName').value.trim();if(!n)return toast('이름을 입력해 주세요');if(S.players.some(p=>p.name===n))return toast('같은 이름이 이미 있어요');$('#newName').value='';save('players',{id:'p'+newId(),name:n,createdAt:Date.now()})},
