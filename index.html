@@ -228,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-18';
+const APP_VERSION='2026.11.27-19';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -700,7 +700,7 @@ function drawSheet(){
       const rest=all.filter(p=>!used.has(p));if(rest.length)body+=`<h3 style="margin-top:14px">그 밖의 참여자</h3>${rest.map(row).join('')}`;
       body=`<div class="wz-k">1단계</div><div class="wz-t">총평</div><p class="mute" style="margin:0">그날 전체 경기를 보고 1점(아쉬움) ~ 10점(최고). 이 점수로 MVP와 티어가 정해져요.</p>${body||'<p class="mute">평가할 선수가 없어요.</p>'}`+nav('다음',true);
     }else if(st<=5){const [k,l,q]=ATTRS[st-1];const sel=sh.best[k]||[];
-      body=`<div class="wz-k">부문별 베스트</div><div class="wz-t">${l}</div><p style="margin:0">${q}</p><p class="mute" style="margin:4px 0 0;color:${sel.length?'var(--acc)':''}">${sel.length?sel.length+' / 2명 선택':'최대 2명까지 고를 수 있어요'}</p>
+      body=`<div class="wz-k">부문별 베스트</div><div class="wz-t">${l}</div><p style="margin:0">${q}</p><p class="mute" style="margin:4px 0 0;color:${sel.length?'var(--acc)':''}">${sel.length?sel.length+' / 3명 선택':'최대 3명까지 고를 수 있어요'}</p>
         <div class="pgrid">${all.map(pid=>`<button type="button" class="pbtn${sel.includes(pid)?' on':''}" data-act="bestPick" data-pid="${esc(pid)}" aria-pressed="${sel.includes(pid)}">${avOf(pid,56,kit(pid))}${esc(nameOf(pid))}</button>`).join('')}</div>`+nav(sel.length?'다음':'건너뛰기',sel.length>0);
     }else{const cs=sh.cmts;const ids=Object.keys(cs);
       body=`<div class="wz-k">마지막 (선택)</div><div class="wz-t">한마디 남기기</div><p class="mute" style="margin:0">하고 싶은 말이 있는 선수를 골라 코멘트를 남겨요. 받은 사람의 MY 탭에 이름 없이 보여요.</p>
@@ -797,11 +797,11 @@ const A={
   rmEv:b=>{const m=liveMatch();if(m)save('matches',{...m,events:(m.events||[]).filter(e=>e.id!==b.dataset.id)})},
   rateOpen:b=>{const wid=b.dataset.id;const ex=S.ratings.find(r=>r.id===wid+'__'+me&&r.day);const draft={};
     {const w=S.weeks.find(x=>x.id===wid);if(w)dayPeople(w).forEach(pid=>{if(pid!==me&&!isGuest(pid))draft[pid]=ex?.scores?.[pid]??5})}
-    const best={};ATTRS.forEach(([k])=>best[k]=Array.isArray(ex?.best?.[k])?ex.best[k].filter(p=>p in draft).slice(0,2):[]);
+    const best={};ATTRS.forEach(([k])=>best[k]=Array.isArray(ex?.best?.[k])?ex.best[k].filter(p=>p in draft).slice(0,3):[]);
     const cmts={};if(ex&&ex.comments&&typeof ex.comments==='object')for(const pid in ex.comments)if(pid in draft)cmts[pid]=String(ex.comments[pid]).slice(0,100);
     openSheet({type:'rate',wid,draft,best,cmts,step:0})},
   rateStep:b=>{sh.step=Math.max(0,Math.min(6,sh.step+(+b.dataset.d)));drawSheet();panel.scrollTop=0},
-  bestPick:b=>{const k=ATTRS[sh.step-1][0],pid=b.dataset.pid;const cur=(sh.best[k]||[]).slice();const i=cur.indexOf(pid);if(i>=0)cur.splice(i,1);else{if(cur.length>=2)cur.shift();cur.push(pid)}sh.best[k]=cur;drawSheet()},
+  bestPick:b=>{const k=ATTRS[sh.step-1][0],pid=b.dataset.pid;const cur=(sh.best[k]||[]).slice();const i=cur.indexOf(pid);if(i>=0)cur.splice(i,1);else{if(cur.length>=3)cur.shift();cur.push(pid)}sh.best[k]=cur;drawSheet()},
   cmtPick:b=>{const pid=b.dataset.pid;if(pid in sh.cmts)delete sh.cmts[pid];else sh.cmts[pid]='';drawSheet();if(pid in sh.cmts){const t=panel.querySelector(`textarea[data-cpid="${CSS.escape(pid)}"]`);if(t)t.focus()}},
   rateSave:()=>{const wid=sh.wid;const comments={};for(const pid in sh.cmts){const t=String(sh.cmts[pid]||'').trim().slice(0,100);if(t)comments[pid]=t}
     save('ratings',{id:wid+'__'+me,match:wid,week:wid,day:true,rater:me,scores:{...sh.draft},best:sh.best,comments,at:Date.now()});closeSheet();toast('평가를 저장했어요')},
