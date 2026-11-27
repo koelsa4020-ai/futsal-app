@@ -67,6 +67,7 @@ button,input,select{font:inherit;color:inherit}
 .dz{transition:background .15s,outline-color .15s;outline:2px dashed transparent;outline-offset:-2px}
 .dz.over{background:var(--accSoft)!important;outline-color:var(--acc)}
 .chip.dragging{opacity:.3}
+.pillsel{flex:1 1 0;background:var(--card);border-color:light-dark(#dfe3ea,#2a3650);font-weight:700;display:flex;justify-content:space-between;align-items:center}
 .steps{display:flex;gap:4px;margin:8px 0 4px}.steps i{flex:1;height:5px;border-radius:3px;background:var(--soft)}.steps i.on{background:var(--acc)}
 .wz-k{font-size:13px;font-weight:700;color:var(--acc);margin-top:14px}.wz-t{font:900 30px/1.15 "Noto Sans KR",sans-serif;letter-spacing:-.6px;margin:2px 0 4px}
 .pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
@@ -228,7 +229,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-21';
+const APP_VERSION='2026.11.27-22';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -412,21 +413,23 @@ const TIER_G=[['비기너','t-beg'],['아마추어','t-ama'],['세미프로','t-
 function tierFromAvg(avg){const i=Math.min(11,Math.max(0,Math.floor((avg-1)/0.75)));const[g,cls]=TIER_G[Math.floor(i/3)];return{label:g+' '+(3-i%3),cls,avg}}
 const tierTag=t=>t?`<span class="tag ${t.cls}">${esc(t.label)}</span>`:'<span class="tag t-none">배치 전</span>';
 let ST={};
-function computeStats(){
-  const done=S.matches.filter(m=>m.status==='done');
+/* 기간(wf: 날짜 id → 포함 여부)별 기록. 전체 기록은 ST, 랭킹의 월별 보기는 같은 함수로 따로 계산 */
+function buildStats(wf){
+  const done=S.matches.filter(m=>m.status==='done'&&wf(m.week));const ws=weeks().filter(w=>wf(w.id));
   const st={};const get=id=>st[id]=st[id]||{g:0,a:0,w:0,d:0,l:0,mvp:0,hist:[],played:0};
   done.forEach(m=>{const sc=score(m);
     (m.events||[]).forEach(e=>{if(!e.og&&e.scorer)get(e.scorer).g++;if(e.assist)get(e.assist).a++});
     for(const s of['a','b']){const o=s==='a'?'b':'a';m[s].members.forEach(pid=>{const p=get(pid);p.played++;
       if(sc[s]>sc[o])p.w++;else if(sc[s]<sc[o])p.l++;else p.d++})}});
-  weeks().forEach(w=>{const R=dayRatings(w.id);if(!R.raters)return;
+  ws.forEach(w=>{const R=dayRatings(w.id);if(!R.raters)return;
     for(const pid in R.avg)get(pid).hist.push(R.avg[pid]);
     dayMvps(w,R).forEach(x=>{if(x.best)get(x.best.pid).mvp++})});
-  const nW=S.weeks.length;
-  for(const p of S.players){const x=get(p.id);const yes=S.weeks.filter(w=>voteOf(w.id,p.id)==='yes').length;
-    x.yes=yes;x.att=nW?yes/nW:0;const h=x.hist.slice(0,5);x.tier=h.length?tierFromAvg(h.reduce((a,b)=>a+b,0)/h.length):null;x.tierN=h.length}
-  ST=st;computeAttrs();
-}
+  const nW=ws.length;
+  for(const p of S.players){const x=get(p.id);const yes=ws.filter(w=>voteOf(w.id,p.id)==='yes').length;
+    x.yes=yes;x.nW=nW;x.att=nW?yes/nW:0;const h=x.hist.slice(0,5);x.tier=h.length?tierFromAvg(h.reduce((a,b)=>a+b,0)/h.length):null;x.tierN=h.length;
+    x.ravg=x.hist.length?x.hist.reduce((a,b)=>a+b,0)/x.hist.length:null}
+  return st}
+function computeStats(){ST=buildStats(()=>true);computeAttrs()}
 
 /* ---------- views ---------- */
 function empty(t,d,tab){return`<div class="card empty"><h3>${t}</h3><p class="mute">${d}</p>${tab?`<button class="btn pri" data-act="go" data-tab="${tab}" type="button">이동하기</button>`:''}</div>`}
@@ -604,14 +607,23 @@ function vMy(){
   ${rated.length?`<h2>내가 한 평가</h2>${rated.slice(0,5).map(w=>rateRow(w,true)).join('')}`:''}
   ${accountCard()}`;
 }
+const RANK_SORTS={tier:'티어',g:'골',a:'어시스트',att:'참여율',mvp:'MVP',win:'승률'};
+const rankMonths=()=>[...new Set(weeks().map(w=>w.id.slice(0,7)))];
+const monthLabel=ym=>{const[y,m]=ym.split('-');return`${y}년 ${+m}월`};
 function vRank(){
   if(!S.players.length)return empty('아직 멤버가 없어요','멤버를 등록하고 경기를 기록하면 랭킹이 쌓여요.','members');
-  const sorts={tier:'티어',g:'골',a:'어시스트',att:'참여율',mvp:'MVP',win:'승률'};
-  const val=(x,k)=>k==='tier'?(x.tier?x.tier.avg:-1):k==='win'?(x.played?x.w/x.played:-1):x[k];
-  const rows=S.players.map(p=>({p,x:ST[p.id]})).sort((A,B)=>val(B.x,ui.sort)-val(A.x,ui.sort)||B.x.g-A.x.g);
-  const show=x=>ui.sort==='tier'?(x.tier?x.tier.avg.toFixed(2):'—'):ui.sort==='att'?Math.round(x.att*100)+'%':ui.sort==='win'?(x.played?Math.round(x.w/x.played*100)+'%':'—'):x[ui.sort];
-  return`<div class="sorts" role="tablist">${Object.entries(sorts).map(([k,v])=>`<button type="button" class="btn${ui.sort===k?' on':''}" data-act="sort" data-k="${k}">${v}</button>`).join('')}</div>
-  <div class="card"><ul class="list rank">${(()=>{let prev=null,rk=0;rows.forEach((r,i)=>{const v=show(r.x);r.rk=(i&&v===prev)?rk:i+1;rk=r.rk;prev=v});return''})()}${rows.map((r,i)=>`<li class="${r.rk<=3?'top3':''}"><span class="no">${r.rk}</span>${avOf(r.p.id,40)}<span><b>${esc(r.p.name)}</b> ${tierTag(r.x.tier)}<br><span class="sub">골 ${r.x.g} · 어시 ${r.x.a} · 참여 ${r.x.yes}/${S.weeks.length} (${Math.round(r.x.att*100)}%) · MVP ${r.x.mvp} · ${r.x.w}승 ${r.x.d}무 ${r.x.l}패</span></span><span class="v">${show(r.x)}</span></li>`).join('')}</ul></div>
+  const per=ui.rankPeriod&&rankMonths().includes(ui.rankPeriod)?ui.rankPeriod:'all';const monthly=per!=='all';
+  const STP=monthly?buildStats(id=>id.startsWith(per)):ST;
+  const sortLbl=k=>k==='tier'&&monthly?'평점':RANK_SORTS[k];
+  const val=(x,k)=>k==='tier'?(monthly?(x.ravg??-1):(x.tier?x.tier.avg:-1)):k==='win'?(x.played?x.w/x.played:-1):x[k];
+  const rows=S.players.map(p=>({p,x:STP[p.id]})).sort((A,B)=>val(B.x,ui.sort)-val(A.x,ui.sort)||B.x.g-A.x.g||A.p.name.localeCompare(B.p.name,'ko'));
+  const show=x=>ui.sort==='tier'?(monthly?(x.ravg!=null?x.ravg.toFixed(2):'—'):(x.tier?x.tier.avg.toFixed(2):'—')):ui.sort==='att'?Math.round(x.att*100)+'%':ui.sort==='win'?(x.played?Math.round(x.w/x.played*100)+'%':'—'):x[ui.sort];
+  let prev=null,rk=0;rows.forEach((r,i)=>{const v=show(r.x);r.rk=(i&&v===prev)?rk:i+1;rk=r.rk;prev=v});
+  return`<div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:nowrap">
+    <button type="button" class="btn pillsel" data-act="rankPeriodOpen">${monthly?monthLabel(per):'전체 기간'} <span aria-hidden="true">▾</span></button>
+    <button type="button" class="btn pillsel" data-act="rankSortOpen">${sortLbl(ui.sort)} 순 <span aria-hidden="true">▾</span></button></div>
+  <div class="card"><ul class="list rank">${rows.map(r=>`<li class="${r.rk<=3?'top3':''}"><span class="no">${r.rk}</span>${avOf(r.p.id,40)}<span><b>${esc(r.p.name)}</b> ${tierTag(ST[r.p.id]?.tier)}<br><span class="sub">골 ${r.x.g} · 어시 ${r.x.a} · 참여 ${r.x.yes}/${r.x.nW} (${Math.round(r.x.att*100)}%) · MVP ${r.x.mvp} · ${r.x.w}승 ${r.x.d}무 ${r.x.l}패</span></span><span class="v">${show(r.x)}</span></li>`).join('')}</ul></div>
+  ${monthly?`<p class="mute" style="font-size:13px">${monthLabel(per)} 경기만 모은 기록이에요. 평점은 그 달에 받은 총평 평균이고, 티어 표시는 현재 티어예요.</p>`:''}
   <details class="card"><summary>티어 기준 보기</summary><p class="mute">최근 평가받은 5일(경기한 날)의 평균 점수(10점 만점)로 정해져요. 1단계가 가장 높아요.</p>
   <table><thead><tr><th>티어</th><th>평균 점수</th></tr></thead><tbody>${Array.from({length:12},(_,k)=>11-k).map(i=>{const t=tierFromAvg(1+i*0.75+0.01);return`<tr><td>${tierTag(t)}</td><td>${(1+i*0.75).toFixed(2)} ${i===11?'이상':'~ '+(1+(i+1)*0.75).toFixed(2)}</td></tr>`}).join('')}</tbody></table></details>`;
 }
@@ -728,6 +740,9 @@ function drawSheet(){
     <p class="mute" style="font-size:13px">투표, 경기, 평가 기록은 그대로 이어지고 캐릭터 얼굴도 바뀌지 않아요.</p>
     <div class="btnrow"><button class="btn ghost" data-act="close" type="button">취소</button><button class="btn pri" data-act="renameSave" type="button">저장</button></div>`;
     setTimeout(()=>{const i=document.getElementById('renameInput');if(i){i.focus();i.select()}},50);return}
+  if(sh.type==='rankPeriod'||sh.type==='rankSort'){const isP=sh.type==='rankPeriod';const cur=isP?(ui.rankPeriod||'all'):ui.sort;
+    const opts=isP?[['all','전체 기간'],...rankMonths().map(m=>[m,monthLabel(m)])]:Object.entries(RANK_SORTS).map(([k,v])=>[k,k==='tier'&&ui.rankPeriod&&ui.rankPeriod!=='all'?'평점':v]);
+    panel.innerHTML=`<h2>${isP?'기간 선택':'정렬 기준'}</h2>${opts.map(([k,l])=>`<button type="button" class="btn${k===cur?' pri':''}" style="width:100%;margin-bottom:8px;text-align:left" data-act="${isP?'rankPeriodSet':'sort'}" data-k="${esc(k)}">${esc(l)}</button>`).join('')}<button class="btn ghost" style="width:100%" data-act="close" type="button">닫기</button>`;return}
   if(sh.type==='past'){const ps=pastWeeks();panel.innerHTML=`<h2>지난 일정</h2>${ps.map(w=>{const n=S.matches.filter(m=>m.week===w.id&&m.status==='done').length;const y=S.votes.filter(v=>v.week===w.id&&v.status==='yes').length;
     return`<button type="button" class="btn" style="width:100%;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;text-align:left" data-act="pickWeek" data-id="${esc(w.id)}"><span>${esc(fmtDate(w.id))}</span><span class="mute">참석 ${y} · ${n}경기</span></button>`}).join('')||'<p class="mute">지난 일정이 없어요.</p>'}<button class="btn ghost" style="width:100%" data-act="close" type="button">닫기</button>`;return}
   if(sh.type==='look'){const mp=P(me);if(!mp){closeSheet();return}const L=sh.look;const pv=(o,sz)=>avatar(mp.name,sz,sh.kit,{...L,...o});
@@ -820,7 +835,10 @@ const A={
   lookRandom:()=>{const R=n=>Math.floor(Math.random()*n);sh.look={skin:R(5),hair:R(6),hairColor:HAIR_COLORS[R(6)],bg:BG_COLORS[R(6)],eye:R(3),mouth:R(4),brow:R(3),blush:Math.random()<.6};drawSheet()},
   lookReset:()=>{sh.look=baseLook(P(me).name);drawSheet()},
   lookSave:()=>{const p=P(me);if(!p)return;save('players',{...p,look:cleanLook(sh.look)});closeSheet();toast('캐릭터를 저장했어요')},
-  sort:b=>{ui.sort=b.dataset.k;render()},
+  sort:b=>{ui.sort=b.dataset.k;closeSheet();render()},
+  rankPeriodOpen:()=>openSheet({type:'rankPeriod'}),
+  rankSortOpen:()=>openSheet({type:'rankSort'}),
+  rankPeriodSet:b=>{ui.rankPeriod=b.dataset.k;closeSheet();render()},
   saveTeam:()=>{save('settings',{...teamDoc(),name:$('#teamName').value.trim()||'우리 풋살팀'});toast('팀 이름을 저장했어요')},
   addPlayer:()=>{const n=$('#newName').value.trim();if(!n)return toast('이름을 입력해 주세요');if(S.players.some(p=>p.name===n))return toast('같은 이름이 이미 있어요');$('#newName').value='';save('players',{id:'p'+newId(),name:n,createdAt:Date.now()})},
   toggleMgr:b=>{const p=P(b.dataset.pid);if(!p||!p.uid)return toast('구글 계정이 연결된 멤버만 매니저가 될 수 있어요');if(p.uid===presUid())return;const ms=mgrUids();
