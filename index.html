@@ -228,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-13';
+const APP_VERSION='2026.11.27-14';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -375,7 +375,7 @@ function computeAttrs(){const res={};
       const others=rs.filter(r=>r.rater!==pid);if(!others.length)return;o.days++;o.raters+=others.length;
       ATTRS.forEach(([k])=>{o.votes[k]=(o.votes[k]||0)+others.filter(r=>Array.isArray(r.best[k])&&r.best[k].includes(pid)).length})})});
   const max={};for(const pid in res){const o=res[pid];o.share={};ATTRS.forEach(([k])=>{o.share[k]=o.raters?(o.votes[k]||0)/o.raters:0;max[k]=Math.max(max[k]||0,o.share[k])})}
-  const avg={},cnt={};for(const pid in res){const o=res[pid];o.val={};ATTRS.forEach(([k])=>{o.val[k]=Math.round(40+60*(max[k]?o.share[k]/max[k]:0));if(o.days>=3){avg[k]=(avg[k]||0)+o.val[k];cnt[k]=(cnt[k]||0)+1}})}
+  const avg={},cnt={};for(const pid in res){const o=res[pid];o.val={};ATTRS.forEach(([k])=>{o.val[k]=Math.round(40+60*(max[k]?o.share[k]/max[k]:0));if(o.days>=1){avg[k]=(avg[k]||0)+o.val[k];cnt[k]=(cnt[k]||0)+1}})}
   const team={};ATTRS.forEach(([k])=>team[k]=cnt[k]?Math.round(avg[k]/cnt[k]):null);SA={p:res,team}}
 function radarSvg(val,team){const cx=150,cy=128,R=92;const pt=(i,v)=>{const a=(-90+72*i)*Math.PI/180;return[cx+R*v/100*Math.cos(a),cy+R*v/100*Math.sin(a)]};
   const poly=vs=>vs.map((v,i)=>pt(i,v).map(n=>n.toFixed(1)).join(',')).join(' ');
@@ -547,11 +547,11 @@ function accountCard(){return`<h2>앱</h2><div class="card">${isStandalone()?'<p
   <h2>계정</h2><div class="card"><p style="margin:0">${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p>
   <p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div></div>`}
 function myRadar(){const o=SA.p&&SA.p[me];const d=o?o.days:0;
-  if(d<3)return`<h2>내 능력치</h2><div class="card"><p style="margin:0">부문별 베스트 평가가 <b>3일</b> 이상 쌓이면 능력치 오각형이 나타나요.</p><div class="barw" style="margin-top:10px"><i style="width:${Math.round(d/3*100)}%"></i></div><p class="mute" style="margin:6px 0 0">지금 ${d} / 3일</p></div>`;
+  if(!d)return`<h2>내 능력치</h2><div class="card"><p style="margin:0">아직 부문별 베스트 평가가 없어요. 경기 후 평가가 모이면 능력치 오각형이 나타나요.</p></div>`;
   const top=ATTRS.slice().sort((a,b)=>o.val[b[0]]-o.val[a[0]]).slice(0,2).map(x=>x[1]);
   return`<h2>내 능력치</h2><div class="card"><div class="row mute" style="justify-content:flex-end;gap:12px;font-size:12px"><span class="row" style="gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(21,112,255,.25);border:2px solid var(--acc)"></span>나</span><span class="row" style="gap:5px"><span style="width:14px;border-top:2px dashed #9aa3b2"></span>팀 평균</span></div>
   ${radarSvg(o.val,SA.team)}<div style="background:var(--accSoft);border-radius:12px;padding:10px 12px;margin-top:6px"><span style="font-size:12px;font-weight:700;color:var(--acc)">강점</span><div style="font-weight:700">${top.join(' · ')}</div></div>
-  <p class="mute" style="margin:8px 0 0;font-size:12px">최근 ${d}일 동안 부문별 베스트로 뽑힌 비율이에요. 팀 1등이 100, 기본 40에서 시작해요.</p></div>`}
+  <p class="mute" style="margin:8px 0 0;font-size:12px">최근 ${d}일(최대 5일) 동안 부문별 베스트로 뽑힌 비율이에요. 팀 1등이 100, 기본 40에서 시작해요.${d<3?' 평가가 더 쌓일수록 정확해져요.':''}</p></div>`}
 function myComments(){const short=id=>{const d=new Date(id+'T00:00:00');return isNaN(d)?id:(d.getMonth()+1)+'.'+d.getDate()};
   const list=S.ratings.filter(r=>r.day&&r.rater!==me&&r.comments&&typeof r.comments[me]==='string'&&r.comments[me].trim()).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,10);
   if(!list.length)return'';
