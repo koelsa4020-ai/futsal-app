@@ -229,7 +229,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-24';
+const APP_VERSION='2026.11.27-25';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -899,9 +899,15 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'){const m={renameInput
 /* ---------- auth & boot ---------- */
 const baseUnsubs=[],dataUnsubs=[];let reqUnsub=null,dataTimer=null,preUnsub=null;
 const off=arr=>{arr.forEach(u=>{try{u()}catch(e){}});arr.length=0};
+/* 경기를 지워서 주인 없는 평가(테스트 기록 등)는 매니저가 접속했을 때 한 번 정리 */
+let cleaned=false;
+function cleanupOrphans(){if(cleaned||!isMgr()||loaded.size<DATA_COLS.length)return;cleaned=true;
+  const doneWeeks=new Set(S.matches.filter(m=>m.status==='done').map(m=>m.week)),matchIds=new Set(S.matches.map(m=>m.id));
+  const orphans=S.ratings.filter(r=>r.day?!doneWeeks.has(r.match):!matchIds.has(r.match));
+  if(orphans.length){orphans.forEach(r=>remove('ratings',r.id));toast('지워진 경기의 평가 '+orphans.length+'개를 정리했어요')}}
 function startData(){
   dataTimer=setTimeout(()=>{if(loaded.size<DATA_COLS.length){slowNote='데이터를 아직 불러오지 못했어요. 표시된 내용이 최신이 아닐 수 있어요.';render()}},10000);
-  DATA_COLS.forEach(c=>dataUnsubs.push(store.sub(c,(rows,meta)=>{S[c]=rows;if(!meta||!meta.fromCache)loaded.add(c);if(loaded.size===DATA_COLS.length){clearTimeout(dataTimer);slowNote=''}
+  DATA_COLS.forEach(c=>dataUnsubs.push(store.sub(c,(rows,meta)=>{S[c]=rows;if(!meta||!meta.fromCache)loaded.add(c);if(loaded.size===DATA_COLS.length){clearTimeout(dataTimer);slowNote='';cleanupOrphans()}
     if(!sh||sh.type!=='rate')drawSheet();render()},err=>{clearTimeout(dataTimer);slowNote=err&&err.code==='permission-denied'?'접근 권한이 없어요. 매니저에게 문의해 주세요.':'데이터 연결이 끊겼어요. 앱을 다시 열어 주세요.';render()})));
 }
 function computeGate(){
