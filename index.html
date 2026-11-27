@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>풋살팀 매니저</title>
+<title>코엘사FS</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="KoELSA">
+<meta name="apple-mobile-web-app-title" content="코엘사FS">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -228,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-10';
+const APP_VERSION='2026.11.27-11';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';

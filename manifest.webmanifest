@@ -1,6 +1,6 @@
 {
- "name": "KoELSA 풋살",
- "short_name": "KoELSA",
+ "name": "코엘사FS",
+ "short_name": "코엘사FS",
  "description": "KoELSA 풋살팀 참석 투표, 팀 짜기, 경기 기록, 평가",
  "lang": "ko",
  "start_url": "/",
