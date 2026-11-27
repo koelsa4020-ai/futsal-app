@@ -74,10 +74,11 @@ service cloud.firestore {
       allow delete: if isMgr();
     }
 
-    // 경기 기록: 매니저만. 멤버는 보기만.
+    // 경기 기록: 기록은 매니저, 삭제는 회장만. 멤버는 보기만.
     match /matches/{id} {
       allow read: if isMember();
-      allow create, update, delete: if isMgr();
+      allow create, update: if isMgr();
+      allow delete: if isPres();
     }
 
     // 평가: 본인 이름으로만.

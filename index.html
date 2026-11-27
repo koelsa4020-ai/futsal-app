@@ -229,7 +229,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-25';
+const APP_VERSION='2026.11.27-26';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -517,7 +517,7 @@ function resultCard(m){
   <span class="s">${sc.a} : ${sc.b}</span><span class="row" style="--tc:${esc(m.b.color)}"><span class="${wn==='b'?'w':''}">${esc(m.b.name)}</span><span class="dot"></span></span></div>
   <p class="mute" style="margin:4px 0 0;text-align:center">${wn?esc(m[wn].name)+' 승':'무승부'} · ${m.minutes}분 경기</p>
   ${evs.length?`<div style="margin-top:6px">${evs.map(e=>`<div class="ev"><span class="min">${Math.floor(e.sec/60)+1}'</span><span class="grow">${evLine(m,e)}</span></div>`).join('')}</div>`:''}
-  ${isMgr()?`<div style="text-align:right;margin-top:6px">${armBtn('delMatch:'+m.id,'경기 기록 삭제','ghost warn')}</div>`:''}</div>`;
+  ${isPres()?`<div style="text-align:right;margin-top:6px">${armBtn('delMatch:'+m.id,'경기 기록 삭제 (회장)','ghost warn')}</div>`:''}</div>`;
 }
 function vMatch(){
   const w=curWeek();if(!w)return weekBar(null);
@@ -889,7 +889,7 @@ function addEvent(x){const side=sh.side;const m=S.matches.find(y=>y.id===sh.mid)
   save('matches',{...m,events:[...(m.events||[]),{id:'e'+newId(),team:side,sec:Math.floor(elapsed(m)),...x}]});toast(x.og?'자책골 기록':'골 기록: '+nameOf(x.scorer))}
 const MGR_ACTS=new Set(['renameOpen','renameSave','toggleDraw','dragPick','moveTo','toggleNewWeek','createWeek','delWeek','addGuest','rmGuest','tc','draw','move','start','pause','endMatch','delMatch','goal','gScorer','gAssist','gOg','rmEv','saveTeam','unlink','delPlayer']);
 function onClick(e){const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const act=b.dataset.act;
-  if(MGR_ACTS.has(act)&&!isMgr())return toast(MGR_ONLY);if((act==='toggleMgr'||act==='claimPres')&&!(act==='claimPres'?isMgr():isPres()))return toast('회장만 할 수 있어요');
+  if(MGR_ACTS.has(act)&&!isMgr())return toast(MGR_ONLY);if(act==='delMatch'&&!isPres())return toast('경기 기록 삭제는 회장만 할 수 있어요');if((act==='toggleMgr'||act==='claimPres')&&!(act==='claimPres'?isMgr():isPres()))return toast('회장만 할 수 있어요');
   const f=A[act];if(f)f(b)}
 document.addEventListener('click',e=>{if(e.target.closest('#tabs')){const b=e.target.closest('[data-tab]');if(b)A.go(b);return}if(e.target.closest('#meBtn'))return A.pickMe();if(e.target.closest('#app,#panel,#note'))onClick(e)});
 document.addEventListener('toggle',e=>{if(e.target.id==='teamsDet')ui.openTeams=e.target.open},true);
