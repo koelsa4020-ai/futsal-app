@@ -228,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-20';
+const APP_VERSION='2026.11.27-21';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -611,7 +611,7 @@ function vRank(){
   const rows=S.players.map(p=>({p,x:ST[p.id]})).sort((A,B)=>val(B.x,ui.sort)-val(A.x,ui.sort)||B.x.g-A.x.g);
   const show=x=>ui.sort==='tier'?(x.tier?x.tier.avg.toFixed(2):'—'):ui.sort==='att'?Math.round(x.att*100)+'%':ui.sort==='win'?(x.played?Math.round(x.w/x.played*100)+'%':'—'):x[ui.sort];
   return`<div class="sorts" role="tablist">${Object.entries(sorts).map(([k,v])=>`<button type="button" class="btn${ui.sort===k?' on':''}" data-act="sort" data-k="${k}">${v}</button>`).join('')}</div>
-  <div class="card"><ul class="list rank">${rows.map((r,i)=>`<li class="${i<3?'top3':''}"><span class="no">${i+1}</span>${avOf(r.p.id,40)}<span><b>${esc(r.p.name)}</b> ${tierTag(r.x.tier)}<br><span class="sub">골 ${r.x.g} · 어시 ${r.x.a} · 참여 ${r.x.yes}/${S.weeks.length} (${Math.round(r.x.att*100)}%) · MVP ${r.x.mvp} · ${r.x.w}승 ${r.x.d}무 ${r.x.l}패</span></span><span class="v">${show(r.x)}</span></li>`).join('')}</ul></div>
+  <div class="card"><ul class="list rank">${(()=>{let prev=null,rk=0;rows.forEach((r,i)=>{const v=show(r.x);r.rk=(i&&v===prev)?rk:i+1;rk=r.rk;prev=v});return''})()}${rows.map((r,i)=>`<li class="${r.rk<=3?'top3':''}"><span class="no">${r.rk}</span>${avOf(r.p.id,40)}<span><b>${esc(r.p.name)}</b> ${tierTag(r.x.tier)}<br><span class="sub">골 ${r.x.g} · 어시 ${r.x.a} · 참여 ${r.x.yes}/${S.weeks.length} (${Math.round(r.x.att*100)}%) · MVP ${r.x.mvp} · ${r.x.w}승 ${r.x.d}무 ${r.x.l}패</span></span><span class="v">${show(r.x)}</span></li>`).join('')}</ul></div>
   <details class="card"><summary>티어 기준 보기</summary><p class="mute">최근 평가받은 5일(경기한 날)의 평균 점수(10점 만점)로 정해져요. 1단계가 가장 높아요.</p>
   <table><thead><tr><th>티어</th><th>평균 점수</th></tr></thead><tbody>${Array.from({length:12},(_,k)=>11-k).map(i=>{const t=tierFromAvg(1+i*0.75+0.01);return`<tr><td>${tierTag(t)}</td><td>${(1+i*0.75).toFixed(2)} ${i===11?'이상':'~ '+(1+(i+1)*0.75).toFixed(2)}</td></tr>`}).join('')}</tbody></table></details>`;
 }
