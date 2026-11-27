@@ -229,7 +229,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-26';
+const APP_VERSION='2026.11.27-27';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -628,9 +628,16 @@ function vRank(){
   <details class="card"><summary>티어 기준 보기</summary><p class="mute">최근 평가받은 5일(경기한 날)의 평균 점수(10점 만점)로 정해져요. 1단계가 가장 높아요.</p>
   <table><thead><tr><th>티어</th><th>평균 점수</th></tr></thead><tbody>${Array.from({length:12},(_,k)=>11-k).map(i=>{const t=tierFromAvg(1+i*0.75+0.01);return`<tr><td>${tierTag(t)}</td><td>${(1+i*0.75).toFixed(2)} ${i===11?'이상':'~ '+(1+(i+1)*0.75).toFixed(2)}</td></tr>`}).join('')}</tbody></table></details>`;
 }
+function recordsCard(){const ms=S.matches.slice().sort((a,b)=>b.week.localeCompare(a.week)||(b.endedAt||0)-(a.endedAt||0));const nR=S.ratings.length;
+  const byDay={};ms.forEach(m=>(byDay[m.week]=byDay[m.week]||[]).push(m));
+  return`<h2>경기 기록 관리 <span class="mute" style="font-weight:400">회장 전용</span></h2><div class="card">
+  <p style="margin:0 0 8px">저장된 경기 <b>${ms.length}</b>개 · 평가 <b>${nR}</b>개 <span class="mute">(모든 날짜)</span></p>
+  ${Object.keys(byDay).length?`<details><summary>날짜별로 보기</summary>${Object.entries(byDay).map(([d,list])=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>${esc(fmtDate(d))}</b>${list.map(m=>{const sc=score(m);return`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="mute">${esc(m.a.name)} ${sc.a} : ${sc.b} ${esc(m.b.name)}${m.status==='live'?' (진행 중)':''}</span>${armBtn('delMatch:'+m.id,'삭제','ghost warn')}</div>`}).join('')}</div>`).join('')}</details>`:''}
+  ${ms.length||nR?`<div style="margin-top:10px">${armBtn('resetRecords:all','경기·평가 기록 전체 삭제','warn')}</div><p class="mute" style="font-size:13px;margin:6px 0 0">테스트 기록 정리용이에요. 경기, 골, 평가, 코멘트가 모두 지워지고 일정·참석 투표·멤버는 남아요.</p>`:'<p class="mute" style="margin:0">지울 기록이 없어요.</p>'}</div>`}
 function vMembers(){
   const team=teamDoc();const players=S.players.slice().sort((x,y)=>x.name.localeCompare(y.name,'ko'));
   return`${!presUid()?`<div class="card" style="border-color:var(--acc)"><h3>회장 등록</h3><p class="mute">아직 회장이 없어요. 회장은 매니저를 지정하거나 해제할 수 있어요. 팀 대표라면 지금 등록하세요.</p><button class="btn pri" data-act="claimPres" type="button">내가 회장으로 등록</button></div>`:''}
+  ${isPres()?recordsCard():''}
   <h2>팀 설정</h2><div class="card"><label for="teamName" class="mute">팀 이름</label><div class="row"><input type="text" id="teamName" class="grow" maxlength="24" value="${esc(team.name||'')}" placeholder="우리 풋살팀"><button class="btn" data-act="saveTeam" type="button">저장</button></div></div>
   <h2>멤버 ${players.length}명</h2><div class="card"><p class="mute" style="margin-top:0">팀원은 앱 주소로 들어와 구글 로그인 후 이름을 입력하면 바로 가입돼요.</p>
   <ul class="list">${players.map(p=>{const m=isMgrPid(p.id);return`<li><span class="row" style="flex-wrap:nowrap;gap:10px">${avOf(p.id,40)}<span>${esc(p.name)} ${tierTag(ST[p.id]?.tier)}${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<br><span class="mute">${p.uid?'구글 계정 연결됨':'계정 미연결 (예전 기록)'}</span></span></span>
@@ -814,6 +821,7 @@ const A={
   pause:()=>{const m=liveMatch();if(!m)return;const now=Date.now();save('matches',m.pausedAt?{...m,pausedTotal:(m.pausedTotal||0)+now-m.pausedAt,pausedAt:null}:{...m,pausedAt:now})},
   endMatch:b=>{if(!arm(b.dataset.k))return;const m=liveMatch();if(!m)return;const sc=score(m);
     save('matches',{...m,status:'done',endedAt:Date.now(),pausedAt:m.pausedAt||Date.now(),scoreA:sc.a,scoreB:sc.b});toast('경기 종료! 오늘 경기가 다 끝나면 MY 탭에서 평가해 주세요')},
+  resetRecords:b=>{if(!isPres())return;if(!arm(b.dataset.k))return;const n=S.matches.length;S.matches.slice().forEach(m=>remove('matches',m.id));S.ratings.slice().forEach(r=>remove('ratings',r.id));toast('경기 '+n+'개와 평가 기록을 모두 지웠어요')},
   delMatch:b=>{if(!arm(b.dataset.k))return;const id=b.dataset.k.split(':')[1];const mm=S.matches.find(x=>x.id===id);S.ratings.filter(r=>r.match===id).forEach(r=>remove('ratings',r.id));remove('matches',id);
     /* 그날 끝난 경기가 하나도 안 남으면 그날 평가도 지움 */
     if(mm&&!S.matches.some(x=>x.id!==id&&x.week===mm.week&&x.status==='done'))S.ratings.filter(r=>r.day&&r.match===mm.week).forEach(r=>remove('ratings',r.id))},
@@ -889,7 +897,7 @@ function addEvent(x){const side=sh.side;const m=S.matches.find(y=>y.id===sh.mid)
   save('matches',{...m,events:[...(m.events||[]),{id:'e'+newId(),team:side,sec:Math.floor(elapsed(m)),...x}]});toast(x.og?'자책골 기록':'골 기록: '+nameOf(x.scorer))}
 const MGR_ACTS=new Set(['renameOpen','renameSave','toggleDraw','dragPick','moveTo','toggleNewWeek','createWeek','delWeek','addGuest','rmGuest','tc','draw','move','start','pause','endMatch','delMatch','goal','gScorer','gAssist','gOg','rmEv','saveTeam','unlink','delPlayer']);
 function onClick(e){const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const act=b.dataset.act;
-  if(MGR_ACTS.has(act)&&!isMgr())return toast(MGR_ONLY);if(act==='delMatch'&&!isPres())return toast('경기 기록 삭제는 회장만 할 수 있어요');if((act==='toggleMgr'||act==='claimPres')&&!(act==='claimPres'?isMgr():isPres()))return toast('회장만 할 수 있어요');
+  if(MGR_ACTS.has(act)&&!isMgr())return toast(MGR_ONLY);if((act==='delMatch'||act==='resetRecords')&&!isPres())return toast('경기 기록 삭제는 회장만 할 수 있어요');if((act==='toggleMgr'||act==='claimPres')&&!(act==='claimPres'?isMgr():isPres()))return toast('회장만 할 수 있어요');
   const f=A[act];if(f)f(b)}
 document.addEventListener('click',e=>{if(e.target.closest('#tabs')){const b=e.target.closest('[data-tab]');if(b)A.go(b);return}if(e.target.closest('#meBtn'))return A.pickMe();if(e.target.closest('#app,#panel,#note'))onClick(e)});
 document.addEventListener('toggle',e=>{if(e.target.id==='teamsDet')ui.openTeams=e.target.open},true);
