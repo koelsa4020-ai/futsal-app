@@ -228,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-12';
+const APP_VERSION='2026.11.27-13';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -241,7 +241,7 @@ const KITS={home:{m:'#2456d6',d:'#1a43b0',st:'#151515',s1:'#f4b82e',s2:'#ffffff'
 function kitFor(c){if(!c||['#2456d6','#2a6cff'].includes(c))return KITS.home;if(['#f7931e','#ff6a13'].includes(c))return KITS.away;return{m:c,d:c,st:'#ffffff',s1:'#1b1b1b',s2:'#ffffff',c:'#1b1b1b'}}
 let avN=0;
 const SKINS=[['#ffe0c7','#f2c3a2'],['#f9d2b0','#e8b48c'],['#efbf98','#d9a077'],['#dca57a','#c08559'],['#c08a60','#a06c45']];
-const HAIR_COLORS=['#231c18','#3d2a1e','#5a3a24','#8a5a35','#1c1d26','#c49a5a'];
+const HAIR_COLORS=['#231c18','#2f241d','#3d2a1e','#5a3a24','#8a5a35','#1c1d26','#c49a5a'];
 const BG_COLORS=['#e6eeff','#fff0de','#e3f5ea','#efe8ff','#fde7ec','#e3f3fa'];
 function seedHash(seed){let h=2166136261;for(const c of String(seed||'?')){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0}
   const mix=x=>{x^=x>>>16;x=Math.imul(x,0x7feb352d)>>>0;x^=x>>>15;x=Math.imul(x,0x846ca68b)>>>0;x^=x>>>16;return x>>>0};
@@ -596,7 +596,7 @@ function vMembers(){
   <h2>팀 설정</h2><div class="card"><label for="teamName" class="mute">팀 이름</label><div class="row"><input type="text" id="teamName" class="grow" maxlength="24" value="${esc(team.name||'')}" placeholder="우리 풋살팀"><button class="btn" data-act="saveTeam" type="button">저장</button></div></div>
   <h2>멤버 ${players.length}명</h2><div class="card"><p class="mute" style="margin-top:0">팀원은 앱 주소로 들어와 구글 로그인 후 이름을 입력하면 바로 가입돼요.</p>
   <ul class="list">${players.map(p=>{const m=isMgrPid(p.id);return`<li><span class="row" style="flex-wrap:nowrap;gap:10px">${avOf(p.id,40)}<span>${esc(p.name)} ${tierTag(ST[p.id]?.tier)}${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<br><span class="mute">${p.uid?'구글 계정 연결됨':'계정 미연결 (예전 기록)'}</span></span></span>
-    <span class="row">${p.uid&&isPres()&&!isPresPid(p.id)?`<button class="btn ghost" data-act="toggleMgr" data-pid="${esc(p.id)}" type="button">${m?'매니저 해제':'매니저 지정'}</button>`:''}${p.uid&&p.id!==me&&!isPresPid(p.id)&&(isPres()||!m)?armBtn('unlink:'+p.id,'연결 해제','ghost'):''}${p.id!==me&&!isPresPid(p.id)&&(isPres()||!m)?armBtn('delPlayer:'+p.id,'삭제','ghost warn'):''}</span></li>`}).join('')||'<li class="mute">아직 멤버가 없어요.</li>'}</ul></div>
+    <span class="row"><button class="btn ghost" data-act="renameOpen" data-pid="${esc(p.id)}" type="button">이름 수정</button>${p.uid&&isPres()&&!isPresPid(p.id)?`<button class="btn ghost" data-act="toggleMgr" data-pid="${esc(p.id)}" type="button">${m?'매니저 해제':'매니저 지정'}</button>`:''}${p.uid&&p.id!==me&&!isPresPid(p.id)&&(isPres()||!m)?armBtn('unlink:'+p.id,'연결 해제','ghost'):''}${p.id!==me&&!isPresPid(p.id)&&(isPres()||!m)?armBtn('delPlayer:'+p.id,'삭제','ghost warn'):''}</span></li>`}).join('')||'<li class="mute">아직 멤버가 없어요.</li>'}</ul></div>
   <p class="mute">이 탭은 회장과 매니저에게만 보여요. 매니저 지정·해제는 회장만 할 수 있어요. 매니저는 투표 일정 올리기, 용병 추가, 팀 짜기, 경기 기록, 멤버 정리를 할 수 있고, 일반 멤버는 본인 참석 투표와 평가, 결과 확인만 할 수 있어요. "연결 해제"를 하면 그 사람은 다시 가입해야 해요.</p>
   <h2>앱 업데이트</h2><div class="card"><div class="row" style="justify-content:space-between"><span>현재 버전 <b>${esc(APP_VERSION)}</b>${ui.newVer?`<br><span style="color:var(--acc)">새 버전 ${esc(ui.newVer)} 있음</span>`:''}</span>
   ${ui.newVer?'<button class="btn pri" data-act="doUpdate" type="button">지금 업데이트</button>':`<button class="btn" data-act="checkUpdate" type="button" ${ui.checking?'disabled':''}>${ui.checking?'확인 중…':'업데이트 확인'}</button>`}</div>
@@ -691,6 +691,12 @@ function drawSheet(){
     <h3 style="margin-top:12px">${ios?'아이폰 (Safari)':'아이폰은 Safari에서'}</h3>${step(1,'Safari로 이 주소를 열어요')}${step(2,'아래쪽 <b>공유</b> 버튼(네모에 위 화살표)을 눌러요')}${step(3,'<b>홈 화면에 추가</b> → 오른쪽 위 <b>추가</b>')}
     <h3 style="margin-top:12px">${ios?'안드로이드는 Chrome에서':'안드로이드 (Chrome)'}</h3>${step(1,'Chrome 오른쪽 위 <b>⋮</b> 메뉴를 눌러요')}${step(2,'<b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 눌러요')}
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close" type="button">닫기</button>`;return}
+  if(sh.type==='rename'){const p=P(sh.pid);if(!p){closeSheet();return}
+    panel.innerHTML=`<h2>이름 수정</h2><div class="row" style="flex-wrap:nowrap;gap:12px;margin-bottom:12px">${avOf(p.id,56)}<span class="mute">지금 이름: <b style="color:var(--ink)">${esc(p.name)}</b></span></div>
+    <label for="renameInput" class="mute">새 이름</label><input type="text" id="renameInput" maxlength="20" value="${esc(p.name)}">
+    <p class="mute" style="font-size:13px">투표, 경기, 평가 기록은 그대로 이어지고 캐릭터 얼굴도 바뀌지 않아요.</p>
+    <div class="btnrow"><button class="btn ghost" data-act="close" type="button">취소</button><button class="btn pri" data-act="renameSave" type="button">저장</button></div>`;
+    setTimeout(()=>{const i=document.getElementById('renameInput');if(i){i.focus();i.select()}},50);return}
   if(sh.type==='past'){const ps=pastWeeks();panel.innerHTML=`<h2>지난 일정</h2>${ps.map(w=>{const n=S.matches.filter(m=>m.week===w.id&&m.status==='done').length;const y=S.votes.filter(v=>v.week===w.id&&v.status==='yes').length;
     return`<button type="button" class="btn" style="width:100%;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;text-align:left" data-act="pickWeek" data-id="${esc(w.id)}"><span>${esc(fmtDate(w.id))}</span><span class="mute">참석 ${y} · ${n}경기</span></button>`}).join('')||'<p class="mute">지난 일정이 없어요.</p>'}<button class="btn ghost" style="width:100%" data-act="close" type="button">닫기</button>`;return}
   if(sh.type==='look'){const mp=P(me);if(!mp){closeSheet();return}const L=sh.look;const pv=(o,sz)=>avatar(mp.name,sz,sh.kit,{...L,...o});
@@ -731,6 +737,11 @@ const A={
   close:closeSheet,
   pickWeek:b=>{ui.week=b.dataset.id;ui.newWeek=false;closeSheet();render();scrollTo(0,0)},
   pastOpen:()=>openSheet({type:'past'}),
+  renameOpen:b=>openSheet({type:'rename',pid:b.dataset.pid}),
+  renameSave:()=>{const p=P(sh.pid);const n=($('#renameInput')?.value||'').trim();if(!p)return closeSheet();if(!n)return toast('이름을 입력해 주세요');if(n===p.name)return closeSheet();
+    if(S.players.some(x=>x.id!==p.id&&x.name===n))return toast('같은 이름이 이미 있어요');
+    const look=p.look&&Object.keys(cleanLook(p.look)).length?p.look:baseLook(p.name);/* 이름이 바뀌어도 얼굴 유지 */
+    save('players',{...p,name:n,look:cleanLook({...baseLook(p.name),...cleanLook(look)})});closeSheet();toast(p.name+' → '+n)},
   install:async()=>{if(installEvt){const e=installEvt;installEvt=null;try{await e.prompt();await e.userChoice}catch(x){}render();return}openSheet({type:'install'})},
   backUp:()=>{ui.week=null;render()},
   toggleDraw:()=>{ui.showDraw=!ui.showDraw;render()},
@@ -824,14 +835,14 @@ document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-drag]'))e
 function dropMgr(u){if(u===presUid()){toast('회장은 연결 해제하거나 삭제할 수 없어요');return false}const ms=mgrUids();if(!ms.includes(u))return true;if(!isPres()){toast('매니저는 회장만 바꿀 수 있어요');return false}save('settings',{...teamDoc(),managerUids:ms.filter(x=>x!==u)});return true}
 function addEvent(x){const side=sh.side;const m=S.matches.find(y=>y.id===sh.mid);closeSheet();if(!m||m.status!=='live')return;
   save('matches',{...m,events:[...(m.events||[]),{id:'e'+newId(),team:side,sec:Math.floor(elapsed(m)),...x}]});toast(x.og?'자책골 기록':'골 기록: '+nameOf(x.scorer))}
-const MGR_ACTS=new Set(['toggleDraw','dragPick','moveTo','toggleNewWeek','createWeek','delWeek','addGuest','rmGuest','tc','draw','move','start','pause','endMatch','delMatch','goal','gScorer','gAssist','gOg','rmEv','saveTeam','unlink','delPlayer']);
+const MGR_ACTS=new Set(['renameOpen','renameSave','toggleDraw','dragPick','moveTo','toggleNewWeek','createWeek','delWeek','addGuest','rmGuest','tc','draw','move','start','pause','endMatch','delMatch','goal','gScorer','gAssist','gOg','rmEv','saveTeam','unlink','delPlayer']);
 function onClick(e){const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const act=b.dataset.act;
   if(MGR_ACTS.has(act)&&!isMgr())return toast(MGR_ONLY);if((act==='toggleMgr'||act==='claimPres')&&!(act==='claimPres'?isMgr():isPres()))return toast('회장만 할 수 있어요');
   const f=A[act];if(f)f(b)}
 document.addEventListener('click',e=>{if(e.target.closest('#tabs')){const b=e.target.closest('[data-tab]');if(b)A.go(b);return}if(e.target.closest('#meBtn'))return A.pickMe();if(e.target.closest('#app,#panel,#note'))onClick(e)});
 document.addEventListener('toggle',e=>{if(e.target.id==='teamsDet')ui.openTeams=e.target.open},true);
 document.addEventListener('change',e=>{if(e.target.id==='weekSel'){ui.week=e.target.value;render()}if(e.target.id==='balance')ui.balance=e.target.checked});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'){const m={guestName:isMgr()?'addGuest':null,teamName:isMgr()?'saveTeam':null,joinName:gate==='bootstrap'?'bootstrap':'join'}[e.target.id];if(m)A[m]()}if(e.key==='Escape')closeSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){const m={renameInput:'renameSave',guestName:isMgr()?'addGuest':null,teamName:isMgr()?'saveTeam':null,joinName:gate==='bootstrap'?'bootstrap':'join'}[e.target.id];if(m)A[m]()}if(e.key==='Escape')closeSheet()});
 
 /* ---------- auth & boot ---------- */
 const baseUnsubs=[],dataUnsubs=[];let reqUnsub=null,dataTimer=null,preUnsub=null;
