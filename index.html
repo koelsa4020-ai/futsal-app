@@ -6,41 +6,68 @@
 <title>풋살팀 매니저</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Barlow+Condensed:wght@600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-/* VOICE: 동네 풋살팀 단톡방 옆에 붙여둔 실내 경기장 전광판 — 빠르고, 크고, 손가락 하나로.
-   IDEA: 실내 풋살 코트 + 경기장 스코어보드. 헤더는 코트 라인, 경기 화면은 전광판.
-   PICTURE: 경기 탭의 대형 스코어보드(팀 조끼 색, 점수, 카운트다운)가 앱의 중심.
-   COLOUR and TYPE: 코트 블루 바탕 헤더 + 오렌지 공 액센트, 팀은 조끼 색. Black Han Sans 제목, Barlow Condensed 숫자, Noto Sans KR 본문.
-   LAYOUT: 휴대폰 한 손 조작 우선. 하단 탭 6개, 한 열 카드, 720px 넘으면 가운데 정렬. */
+/* VOICE: 동네 풋살팀 전용 매칭앱 — 밝고 단정하게, 한 손으로 빠르게.
+   IDEA: 스포츠 매칭앱의 카드 리스트. 팀원은 우리 유니폼(홈 파랑/원정 주황)을 입은 캐릭터로 표시.
+   PICTURE: 투표 카드의 내 캐릭터와 참석 막대, 경기 탭의 스코어보드.
+   COLOUR and TYPE: 회색빛 바탕 위 흰 카드, 파랑 #1570ff 하나로 강조. Noto Sans KR 900 제목, Barlow Condensed 숫자.
+   LAYOUT: 흰 헤더 + 날짜 탭, 한 열 카드, 하단 탭. 720px 넘으면 가운데 정렬. */
 :root{color-scheme:light dark;
---bg:light-dark(#ffffff,#0a1226);--ink:light-dark(#0d1326,#e9edf7);--mute:light-dark(#5b6478,#9aa5bd);
---line:light-dark(#e3e7ef,#1f2b47);--card:light-dark(#ffffff,#101a33);--soft:light-dark(#f2f5fb,#14203d);
---court:#123a8c;--court2:#1a4fb5;--acc:#ff6a13;--yes:#1d9a5b;--no:#d63a3a;--hold:#e0a100}
+--bg:light-dark(#f4f6fa,#0b1220);--ink:light-dark(#111827,#e8ecf4);--mute:light-dark(#6b7280,#9aa4b6);
+--line:light-dark(#eceff4,#1f2a40);--card:light-dark(#ffffff,#121b2e);--soft:light-dark(#f1f3f7,#18233a);
+--acc:#1570ff;--accSoft:light-dark(#e8efff,#16264a);--yes:#1570ff;--no:#dc2626;--hold:#f59e0b}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Noto Sans KR",system-ui,sans-serif;overflow-x:clip;padding-bottom:84px}
 button,input,select{font:inherit;color:inherit}
-.top{position:relative;overflow:hidden;background:linear-gradient(160deg,var(--court2),var(--court));color:#fff;padding:22px max(5vw,16px) 20px}
-.top svg{position:absolute;inset:0;width:100%;height:100%;opacity:.22;pointer-events:none}
-.top .in{position:relative;max-width:720px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.top h1{font:400 clamp(28px,7vw,40px)/1.05 "Black Han Sans",sans-serif;margin:0;text-wrap:balance}
-.top p{margin:4px 0 0;opacity:.85;font-size:14px}
-.me{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:8px 14px;min-height:44px;color:#fff;cursor:pointer;white-space:nowrap}
+.top{background:var(--card);color:var(--ink);padding:12px max(4vw,14px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:4}
+.top .in{max-width:720px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex:none}
+.top h1{font:900 20px/1.2 "Noto Sans KR",sans-serif;margin:0;letter-spacing:-.4px}
+.top p{margin:0;font-size:12px;color:var(--mute)}
+.me{width:44px;height:44px;padding:0;border-radius:50%;border:0;background:var(--soft);cursor:pointer;overflow:hidden;flex:none;font-weight:700;color:var(--acc)}
+.av{display:inline-block;flex:none;border-radius:50%;overflow:hidden;vertical-align:middle;line-height:0}
+.av svg{width:100%;height:100%}
+.weeks{display:flex;gap:4px;overflow-x:auto;margin:-16px calc(-1 * max(4vw,14px)) 14px;padding:0 max(4vw,14px);background:var(--card);border-bottom:1px solid var(--line);scrollbar-width:none}
+.weeks button{flex:none;border:0;background:none;min-height:46px;padding:0 10px;font-size:15px;color:var(--mute);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.weeks button.on{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
+.weeks .add{color:var(--acc);font-weight:700}
+.hero .ttl{font-size:22px;font-weight:900;letter-spacing:-.5px;line-height:1.25}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;margin-right:4px;background:var(--accSoft);color:var(--acc)}
+.badge.past{background:var(--soft);color:var(--mute)}
+.bar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;display:flex;margin:14px 0}
+.bar i{display:block;background:var(--yes)}.bar i.h{background:var(--hold)}
+.vote3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.vote3 .btn{min-height:52px;font-size:16px;font-weight:700;background:var(--card)}
+.vote3 .btn.on.yes{background:var(--yes);border-color:var(--yes);color:#fff}
+.vote3 .btn.on.no{background:var(--no);border-color:var(--no);color:#fff}
+.vote3 .btn.on.hold{background:var(--hold);border-color:var(--hold);color:#1a1200}
+.pill{font-size:13px;font-weight:700;padding:5px 10px;border-radius:8px;white-space:nowrap}
+.p-yes{background:var(--accSoft);color:var(--acc)}.p-no{background:light-dark(#fde8e8,#3a1717);color:light-dark(#b91c1c,#fca5a5)}.p-hold{background:light-dark(#fff6db,#3a2e10);color:light-dark(#a16207,#fcd34d)}.p-none{background:var(--soft);color:var(--mute)}
+.prow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.prow:first-of-type{border-top:0}
+.prow .who{flex:1;min-width:0}
+.prow .who b{font-weight:700}
+.prow .sub{font-size:12px;color:var(--mute)}
+.lhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.lhead h2{margin:0}
+.r-pres{background:#111827;color:#fff}.r-mgr{background:var(--accSoft);color:var(--acc)}
 .me b{color:#ffd2b8}
 main{max-width:720px;margin:0 auto;padding:16px max(4vw,14px) 24px}
 .note{max-width:720px;margin:10px auto 0;padding:0 max(4vw,14px)}
-.note div+div{margin-top:6px}.note div{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--mute)}
-h2{font:400 22px/1.2 "Black Han Sans",sans-serif;margin:22px 0 10px}
+.note:empty{display:none}.note div+div{margin-top:6px}.note div{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--mute)}
+h2{font:900 17px/1.3 "Noto Sans KR",sans-serif;margin:22px 0 10px;letter-spacing:-.3px}
 h2:first-child{margin-top:4px}
 h3{font-size:16px;margin:0 0 8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card{background:var(--card);border:0;border-radius:16px;padding:16px;margin-bottom:12px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .grow{flex:1 1 140px}
 .mute{color:var(--mute);font-size:14px}
-.btn{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--soft);padding:0 14px;cursor:pointer;font-weight:500}
+.btn{min-height:44px;border-radius:12px;border:1px solid light-dark(#dfe3ea,#2a3650);background:var(--soft);padding:0 14px;cursor:pointer;font-weight:500}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
-.btn.blue{background:var(--court2);border-color:var(--court2);color:#fff}
+.btn.blue{background:var(--ink);border-color:var(--ink);color:var(--card)}
 .btn.ghost{background:transparent}
 .btn.warn{color:var(--no)}
 .btn.armed{background:var(--no);border-color:var(--no);color:#fff}
@@ -62,11 +89,11 @@ input[type=text],input[type=date],input[type=number],select{min-height:44px;bord
 .counts div{background:var(--soft);border-radius:10px;padding:8px 4px}
 .counts b{display:block;font:700 28px/1 "Barlow Condensed",sans-serif}
 .counts span{font-size:13px;color:var(--mute)}
-.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;background:var(--soft);font-size:14px;border:1px solid var(--line);cursor:pointer;min-height:34px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px 3px 3px;background:var(--soft);font-size:14px;border:1px solid var(--line);cursor:pointer;min-height:34px}
 .chip.g{border-style:dashed}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .dot{width:12px;height:12px;border-radius:50%;background:var(--tc);border:1px solid rgba(0,0,0,.25);flex:none}
-.team{border-top:6px solid var(--tc)}
+.team{box-shadow:inset 0 5px 0 var(--tc)}
 .team h3{display:flex;justify-content:space-between}
 .tag{font-size:12px;border-radius:6px;padding:1px 6px;font-weight:700;white-space:nowrap}
 .t-pro{background:#ff6a13;color:#fff}.t-semi{background:#2a6cff;color:#fff}.t-ama{background:#0f9d8a;color:#fff}.t-beg{background:#8a93a6;color:#fff}.t-none{background:var(--soft);color:var(--mute);border:1px solid var(--line)}
@@ -74,7 +101,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 th{color:var(--mute);font-weight:500}
-.board{background:#081634;color:#fff;border-radius:18px;padding:18px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;box-shadow:inset 0 0 0 3px #1a2c57}
+.board{background:#0f1b33;color:#fff;border-radius:18px;padding:18px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;box-shadow:inset 0 0 0 3px #1a2c57}
 .side{text-align:center}
 .side .nm{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:15px}
 .side .sc{font:700 clamp(64px,18vw,104px)/1 "Barlow Condensed",sans-serif;font-variant-numeric:tabular-nums}
@@ -91,7 +118,7 @@ th{color:var(--mute);font-weight:500}
 .res .w{color:var(--acc)}
 .mvp{margin-top:8px;font-size:14px;background:var(--soft);border-radius:8px;padding:8px 10px}
 .mvp b{color:var(--acc)}
-.rank li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center}
+.rank li{display:grid;grid-template-columns:28px 40px minmax(0,1fr) auto;gap:10px;align-items:center}
 .rank .no{font:700 24px "Barlow Condensed",sans-serif;color:var(--mute);text-align:center}
 .rank .top3 .no{color:var(--acc)}
 .rank .v{font:700 26px/1 "Barlow Condensed",sans-serif;text-align:right;white-space:nowrap}
@@ -103,7 +130,7 @@ th{color:var(--mute);font-weight:500}
 .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom);z-index:5}
 .tabs button{border:0;background:none;min-height:60px;font-size:13px;cursor:pointer;color:var(--mute);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .tabs button svg{width:22px;height:22px}
-.tabs .on{color:var(--acc);font-weight:700}
+.tabs .on{color:var(--ink);font-weight:700}
 .sheet{position:fixed;inset:0;background:rgba(5,10,25,.55);z-index:10;display:flex;align-items:flex-end;justify-content:center}
 .sheet[hidden]{display:none}
 .panel{background:var(--bg);width:100%;max-width:720px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
@@ -113,6 +140,7 @@ th{color:var(--mute);font-weight:500}
 .rate input{grid-column:1/-1;width:100%;accent-color:var(--acc);height:32px}
 .rate output{font:700 24px "Barlow Condensed",sans-serif;text-align:right;color:var(--acc)}
 .gated .tabs,.gated #meBtn{display:none}
+.gate h2{font-size:22px}
 .tabs{grid-template-columns:repeat(5,minmax(0,1fr))}.tabs.mgr{grid-template-columns:repeat(6,minmax(0,1fr))}.tabs:not(.mgr) [data-tab=members]{display:none}
 .gate{max-width:460px;margin:24px auto;text-align:center;padding:24px 18px}
 .gate p{color:var(--mute)}
@@ -126,20 +154,16 @@ th{color:var(--mute);font-weight:500}
 .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
 .toast.on{opacity:1}
 details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--mute)}
-@media(prefers-reduced-motion:no-preference){.clock.run{animation:pulse 2s ease-in-out infinite}@keyframes pulse{50%{box-shadow:0 0 0 4px rgba(255,106,19,.25)}}}
+@media(prefers-reduced-motion:no-preference){.clock.run{animation:pulse 2s ease-in-out infinite}@keyframes pulse{50%{box-shadow:0 0 0 4px rgba(21,112,255,.3)}}}
 @media(max-width:600px){table{font-size:13px}.tabs button{font-size:12px}}
 </style>
 </head>
 <body>
-<header class="top">
-  <svg viewBox="0 0 400 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <g fill="none" stroke="#fff" stroke-width="2"><rect x="6" y="6" width="388" height="108" rx="2"/><line x1="200" y1="6" x2="200" y2="114"/><circle cx="200" cy="60" r="26"/><path d="M6 24 a42 42 0 0 1 0 72"/><path d="M394 24 a42 42 0 0 0 0 72"/></g>
-  </svg>
-  <div class="in">
-    <div><h1 id="teamTitle">우리 풋살팀</h1><p id="subTitle">불러오는 중…</p></div>
-    <button class="me" id="meBtn" type="button">나: <b>선택하기</b></button>
-  </div>
-</header>
+<header class="top"><div class="in">
+  <div class="brand"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg></span>
+  <div><h1 id="teamTitle">우리 풋살팀</h1><p id="subTitle">불러오는 중…</p></div></div>
+  <button class="me" id="meBtn" type="button" aria-label="내 계정"></button>
+</div></header>
 <div class="note" id="note"></div>
 <main id="app"><div class="empty mute">데이터를 불러오는 중이에요…</div></main>
 <nav class="tabs" id="tabs">
@@ -158,14 +182,55 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-1';
+const APP_VERSION='2026.11.27-2';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
 const DATA_COLS=['players','weeks','votes','matches','ratings'];
 const S={players:[],weeks:[],votes:[],matches:[],ratings:[],settings:[],users:[],requests:[],myUser:null,myReq:null};
-const TEAMS=[{name:'A팀',c:'#ff6a13'},{name:'B팀',c:'#2a6cff'},{name:'C팀',c:'#c6e600'},{name:'D팀',c:'#f2f2f2'}];
+const TEAMS=[{name:'A팀',c:'#2456d6'},{name:'B팀',c:'#f7931e'},{name:'C팀',c:'#c6e600'},{name:'D팀',c:'#f2f2f2'}];
 const txOn=c=>['#c6e600','#f2f2f2'].includes(c)?'#111':'#fff';
+/* 선수 캐릭터: 이름으로 얼굴이 정해지고(항상 같음), 유니폼은 홈(파랑)/원정(주황)/조끼 색 */
+const KITS={home:{m:'#2456d6',d:'#1a43b0',st:'#151515',s1:'#f4b82e',s2:'#ffffff',c:'#151515'},away:{m:'#f7931e',d:'#e07b0c',st:'#ffffff',s1:'#1b1b1b',s2:'#ffffff',c:'#1b1b1b'}};
+function kitFor(c){if(!c||['#2456d6','#2a6cff'].includes(c))return KITS.home;if(['#f7931e','#ff6a13'].includes(c))return KITS.away;return{m:c,d:c,st:'#ffffff',s1:'#1b1b1b',s2:'#ffffff',c:'#1b1b1b'}}
+let avN=0;
+function avatar(seed,size,kit){
+  seed=String(seed||'?');const K=typeof kit==='object'?kit:(kit==='away'?KITS.away:KITS.home);
+  let h=2166136261;for(const c of seed){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0}
+  const mix=x=>{x^=x>>>16;x=Math.imul(x,0x7feb352d)>>>0;x^=x>>>15;x=Math.imul(x,0x846ca68b)>>>0;x^=x>>>16;return x>>>0};
+  const r=(n,k)=>mix((h+Math.imul(k,0x9e3779b9))>>>0)%n;
+  const SK=[['#ffe0c7','#f2c3a2'],['#f9d2b0','#e8b48c'],['#efbf98','#d9a077'],['#dca57a','#c08559'],['#c08a60','#a06c45']];
+  const HC=['#231c18','#2f241d','#3d2a1e','#1c1d26','#5a3a24','#231c18'];
+  const BG=['#e6eeff','#fff0de','#e3f5ea','#efe8ff','#fde7ec','#e3f3fa'];
+  const [sk,skd]=SK[[0,0,1,1,1,2,2,3,4][r(9,3)]],hc=HC[r(6,11)],bg=BG[r(6,13)];
+  const hair=[0,0,1,2,3,3,3,4,5][r(9,1)],eye=r(4,7),mouth=r(4,31),brow=r(3,19),blush=r(3,17)!==0;
+  const by=[34.5,35.5,34][brow],ba=[0,1.6,-1.2][brow],ink='#2a2220',id='av'+(++avN);
+  const HAIR=[
+   `<path d="M26.5 40C24 22 36 12.5 51 12.5C66 12.5 77 21 73.5 40C72.5 33 70 29.5 66 27.5C58 31 44 31.5 35 28.5C30 31 28 35 26.5 40Z" fill="${hc}"/><path d="M50 14.5C56 15 62 17 66 21" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2.2" stroke-linecap="round"/>`,
+   `<path d="M26.5 39L25 25L31 28L31 17L38 22L41 11L47 18.5L52 9L56 18L63 12L64 21L71 18L70 27L76 27L73.5 39C70 31 63 27.5 50 27.5C37 27.5 30 31 26.5 39Z" fill="${hc}"/>`,
+   `<path d="M27 38.5C26.5 23 37 15 50 15C63 15 73.5 23 73 38.5C70.5 30 63 26 50 26C37 26 29.5 30 27 38.5Z" fill="${hc}" opacity=".78"/>`,
+   `<path d="M27 41C25 22 37 13 51 13C65 13 76 21.5 73 41C71.5 36 70 33 68 31C66 33.5 62 34.5 58 33.5C55 35 50 35.2 46 33.8C42 35.2 37 35 34 33C31 34 29 37 27 41Z" fill="${hc}"/><path d="M42 17C48 15.5 56 16 62 19" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="2.2" stroke-linecap="round"/>`,
+   `<g fill="${hc}"><circle cx="31" cy="28" r="6.5"/><circle cx="38" cy="20.5" r="7.2"/><circle cx="47" cy="16" r="7.2"/><circle cx="56.5" cy="16.5" r="7.2"/><circle cx="64.5" cy="21" r="6.8"/><circle cx="69.5" cy="28.5" r="6"/><circle cx="28" cy="35" r="3.8"/><circle cx="72" cy="35" r="3.8"/><path d="M29 30C38 26.5 62 26.5 71 30L71 24L29 24Z"/></g>`,
+   `<path d="M26.5 40C24 22 36 12.5 51 12.5C66 12.5 77 21 73.5 40C72 33 69 30 64 28.5C56 30.5 44 30.5 36 28.5C31 30 28.5 34 26.5 40Z" fill="${hc}"/><path d="M27.2 31C38 25.5 62 25.5 72.8 31L72.2 36C62 31 38 31 27.8 36Z" fill="${K.m}"/>`];
+  const EYES=[`<ellipse cx="40.5" cy="43" rx="3.4" ry="4.3" fill="${ink}"/><ellipse cx="59.5" cy="43" rx="3.4" ry="4.3" fill="${ink}"/><circle cx="41.7" cy="41.4" r="1.3" fill="#fff"/><circle cx="60.7" cy="41.4" r="1.3" fill="#fff"/>`,
+   `<path d="M36.5 44Q40.5 39.5 44.5 44M55.5 44Q59.5 39.5 63.5 44" fill="none" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>`,
+   `<path d="M37 41.5H44V43.5C44 46 37 46 37 43.5ZM56 41.5H63V43.5C63 46 56 46 56 43.5Z" fill="${ink}"/>`];
+  const MOUTH=[`<path d="M44 55Q50 60.5 56 55" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/>`,
+   `<path d="M43.5 54.2Q50 63 56.5 54.2Z" fill="#6b2a2a"/><path d="M45.5 55.4Q50 57 54.5 55.4L54 54.4L46 54.4Z" fill="#fff"/><path d="M46.5 59.2Q50 61.4 53.5 59.2Q50 57.2 46.5 59.2Z" fill="#e2736b"/>`,
+   `<path d="M45 56Q51 58.5 56 54.5" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/>`,
+   `<ellipse cx="50" cy="56.5" rx="3" ry="2.4" fill="#6b2a2a"/>`];
+  return `<span class="av" style="width:${size}px;height:${size}px" aria-hidden="true"><svg viewBox="0 0 100 100"><defs><clipPath id="${id}"><circle cx="50" cy="50" r="50"/></clipPath></defs><g clip-path="url(#${id})"><rect width="100" height="100" fill="${bg}"/><g transform="translate(50 60) scale(1.16) translate(-50 -60)">`
+   +`<path d="M10 100C10 84 22 75 38 73L62 73C78 75 90 84 90 100Z" fill="${K.m}"/><path d="M10 100C10 88 15 81 23 77L26 100Z" fill="${K.d}"/><path d="M90 100C90 88 85 81 77 77L74 100Z" fill="${K.d}"/>`
+   +`<path d="M37 73.4L45 73L45 100L37 100Z" fill="${K.st}"/><path d="M58 100V95H64V90H70V85H76V80.5C80 82.5 83 85 85 88V100Z" fill="${K.s1}"/><path d="M64 100V95H70V90H76V85H82V84.6C84.5 86.8 86.4 89.4 87.6 92.4V100Z" fill="${K.s2}"/>`
+   +`<path d="M42 62H58V75C58 79 42 79 42 75Z" fill="${sk}"/><path d="M42 66C46 70 54 70 58 66V70C54 73 46 73 42 70Z" fill="${skd}"/><path d="M38.5 73.2C42 80 58 80 61.5 73.2" fill="none" stroke="${K.c}" stroke-width="3.2" stroke-linecap="round"/>`
+   +`<ellipse cx="25.5" cy="45" rx="5" ry="6.2" fill="${sk}"/><ellipse cx="74.5" cy="45" rx="5" ry="6.2" fill="${sk}"/><ellipse cx="26" cy="45.5" rx="2.4" ry="3.4" fill="${skd}"/><ellipse cx="74" cy="45.5" rx="2.4" ry="3.4" fill="${skd}"/>`
+   +`<path d="M27 40C27 24 37 16 50 16C63 16 73 24 73 40C73 55 64 66 50 66C36 66 27 55 27 40Z" fill="${sk}"/>`+HAIR[hair]
+   +`<path d="M35.5 ${by+ba}Q40 ${by-1.8} 44.5 ${by}M55.5 ${by}Q60 ${by-1.8} 64.5 ${by+ba}" fill="none" stroke="${hc}" stroke-width="2.6" stroke-linecap="round"/>`
+   +EYES[eye===3?0:eye]+`<path d="M48.5 49Q50 50.6 51.5 49" fill="none" stroke="${skd}" stroke-width="2" stroke-linecap="round"/>`
+   +(blush?`<g fill="#ff8a7a" opacity=".35"><ellipse cx="34" cy="51.5" rx="4.2" ry="2.6"/><ellipse cx="66" cy="51.5" rx="4.2" ry="2.6"/></g>`:'')
+   +MOUTH[mouth]+`</g></g></svg></span>`;
+}
+const avOf=(pid,size,kit)=>avatar(nameOf(pid),size,kit);
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const ui={tab:ls.get('futsal.tab')||'vote',week:null,teamCount:2,balance:false,min:12,sort:'tier',armed:null,newWeek:false,loginErr:''};
 let me=null,authUser=null,gate='loading',gateErr='';
@@ -218,7 +283,7 @@ const isPres=()=>!!(authUser&&presUid()===authUser.uid);
 const isMgr=()=>!!(authUser&&(isPres()||mgrUids().includes(authUser.uid)));
 const isPresPid=pid=>{const p=P(pid);return!!(p&&p.uid&&p.uid===presUid())};
 const isMgrPid=pid=>{const p=P(pid);return!!(p&&p.uid&&(p.uid===presUid()||mgrUids().includes(p.uid)))};
-const roleTag=pid=>isPresPid(pid)?' <span class="tag t-pro">회장</span>':isMgrPid(pid)?' <span class="tag t-semi">매니저</span>':'';
+const roleTag=pid=>isPresPid(pid)?' <span class="tag r-pres">회장</span>':isMgrPid(pid)?' <span class="tag r-mgr">매니저</span>':'';
 const MGR_ONLY='매니저만 할 수 있어요';
 const canVote=pid=>isMgr()||(!!me&&pid===me);
 const voteOf=(wid,pid)=>S.votes.find(v=>v.id===wid+'__'+pid)?.status||null;
@@ -258,29 +323,43 @@ function computeStats(){
 /* ---------- views ---------- */
 function empty(t,d,tab){return`<div class="card empty"><h3>${t}</h3><p class="mute">${d}</p>${tab?`<button class="btn pri" data-act="go" data-tab="${tab}" type="button">이동하기</button>`:''}</div>`}
 function weekBar(w){
-  const ws=weeks();
-  return`<div class="row" style="margin-bottom:12px">
-    ${ws.length?`<select id="weekSel" class="grow" aria-label="일정 선택">${ws.map(x=>`<option value="${esc(x.id)}"${w&&x.id===w.id?' selected':''}>${esc(fmtDate(x.id))}</option>`).join('')}</select>`:''}
-    ${isMgr()?'<button class="btn" data-act="toggleNewWeek" type="button">＋ 새 일정</button>':''}</div>
+  const ws=weeks().slice(0,12);
+  const short=id=>{const d=new Date(id+'T00:00:00');return isNaN(d)?id:(d.getMonth()+1)+'.'+d.getDate()+' ('+'일월화수목금토'[d.getDay()]+')'};
+  return`<nav class="weeks" aria-label="경기 일정">${ws.map(x=>`<button type="button" class="${w&&x.id===w.id?'on':''}" data-act="pickWeek" data-id="${esc(x.id)}">${esc(short(x.id))}</button>`).join('')}${isMgr()?'<button type="button" class="add" data-act="toggleNewWeek">＋ 새 일정</button>':''}</nav>
     ${!ws.length&&!isMgr()?'<div class="card empty"><h3>아직 올라온 투표가 없어요</h3><p class="mute">매니저가 경기 일정을 올리면 여기서 참석 투표를 할 수 있어요.</p></div>':''}
     ${isMgr()&&(ui.newWeek||!ws.length)?`<div class="card"><h3>경기 일정 만들기</h3><div class="row"><input type="date" id="newWeekDate" class="grow" value="${todayStr()}"><button class="btn pri" data-act="createWeek" type="button">만들기</button></div><p class="mute" style="margin:8px 0 0">매주 경기 날짜를 하나씩 만들고, 그 날짜에 참석 투표를 받아요.</p></div>`:''}`;
 }
 function vVote(){
-    const w=curWeek();if(!w)return weekBar(null);
+  const w=curWeek();if(!w)return weekBar(null);
   const c={yes:0,no:0,hold:0,none:0};S.players.forEach(p=>c[voteOf(w.id,p.id)||'none']++);
-  const seg=(pid,s)=>['yes','no','hold'].map(k=>`<button type="button" class="${k}${s===k?' on':''}" data-act="vote" data-pid="${esc(pid)}" data-s="${k}"${canVote(pid)?'':' disabled'}>${{yes:'참석',no:'불참',hold:'보류'}[k]}</button>`).join('');
-  const mine=me&&P(me)?voteOf(w.id,me):null;
+  const L={yes:'참석',no:'불참',hold:'보류'};
+  const seg=(pid,st)=>['yes','no','hold'].map(k=>`<button type="button" class="${k}${st===k?' on':''}" data-act="vote" data-pid="${esc(pid)}" data-s="${k}">${L[k]}</button>`).join('');
+  const mine=me&&P(me)?voteOf(w.id,me):null;const tot=S.players.length||1;const past=w.id<todayStr();
+  const sub=pid=>{const x=ST[pid]||{};return(x.tier?x.tier.label:'배치 전')+' · 골 '+(x.g||0)};
+  const order={yes:0,hold:1,no:2,none:3};
+  const list=S.players.slice().sort((a,b)=>(a.id===me?-1:b.id===me?1:0)||order[voteOf(w.id,a.id)||'none']-order[voteOf(w.id,b.id)||'none']||a.name.localeCompare(b.name,'ko'));
   return weekBar(w)+`
-  ${me&&P(me)?`<div class="card myvote"><h3>${esc(P(me).name)}님, ${esc(fmtDate(w.id))} 경기 오시나요?</h3><div class="row">${['yes','no','hold'].map(k=>`<button type="button" class="btn big ${k}${mine===k?' on':''}" data-act="vote" data-pid="${esc(me)}" data-s="${k}">${{yes:'참석',no:'불참',hold:'보류'}[k]}</button>`).join('')}</div></div>`:`<div class="card"><p class="mute" style="margin:0 0 8px">내 계정이 아직 선수와 연결되지 않았어요.</p><button class="btn blue" data-act="go" data-tab="members" type="button">멤버 탭에서 연결하기</button></div>`}
-  <div class="counts"><div><b style="color:var(--yes)">${c.yes}</b><span>참석</span></div><div><b style="color:var(--no)">${c.no}</b><span>불참</span></div><div><b style="color:var(--hold)">${c.hold}</b><span>보류</span></div><div><b>${c.none}</b><span>미응답</span></div></div>
-  <h2>투표 현황</h2><p class="mute" style="margin-top:-4px">${isMgr()?'매니저라서 모든 멤버의 참석 여부를 바꿀 수 있어요.':'참석 여부는 본인과 매니저만 바꿀 수 있어요.'}</p><div class="card"><ul class="list">${S.players.map(p=>`<li><span>${esc(p.name)}${p.id===me?' <span class="tag t-none">나</span>':''}${roleTag(p.id)}</span><span class="seg">${seg(p.id,voteOf(w.id,p.id))}</span></li>`).join('')}</ul></div>
+  <section class="card hero">
+    <div class="row" style="flex-wrap:nowrap;gap:14px">${me?avOf(me,64):''}<div>
+      <div style="margin-bottom:6px"><span class="badge${past?' past':''}">${past?'지난 경기':'투표 중'}</span></div>
+      <div class="ttl">${esc(fmtDate(w.id))} 경기</div>
+      <div class="mute">참석 ${c.yes}명${(w.guests||[]).length?' · 용병 '+(w.guests||[]).length+'명':''}</div></div></div>
+    <div class="bar" aria-hidden="true"><i style="width:${Math.round(c.yes/tot*100)}%"></i><i class="h" style="width:${Math.round(c.hold/tot*100)}%"></i></div>
+    ${me&&P(me)?`<div class="vote3">${['yes','no','hold'].map(k=>`<button type="button" class="btn ${k}${mine===k?' on':''}" data-act="vote" data-pid="${esc(me)}" data-s="${k}">${L[k]}</button>`).join('')}</div>`:'<p class="mute" style="margin:0">내 계정이 선수와 연결되지 않아 투표할 수 없어요.</p>'}
+  </section>
+  <section class="card" style="padding-top:12px;padding-bottom:6px">
+    <div class="lhead"><h2>투표 현황</h2><span class="mute" style="font-size:13px">참석 ${c.yes} · 불참 ${c.no} · 보류 ${c.hold} · 미응답 ${c.none}</span></div>
+    ${list.map(p=>{const st=voteOf(w.id,p.id);const ctl=isMgr()&&p.id!==me?`<span class="seg">${seg(p.id,st)}</span>`:`<span class="pill p-${st||'none'}">${st?L[st]:'미응답'}</span>`;
+      return`<div class="prow">${avOf(p.id,44)}<div class="who"><b>${esc(p.name)}</b>${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<div class="sub">${esc(sub(p.id))}</div></div>${ctl}</div>`}).join('')}
+  </section>
   <h2>용병</h2><div class="card">${isMgr()?'<div class="row" style="margin-bottom:10px"><input type="text" id="guestName" class="grow" placeholder="용병 이름" maxlength="20"><button class="btn pri" data-act="addGuest" type="button">추가</button></div>':''}
   <div class="chips">${(w.guests||[]).map(g=>isMgr()?`<button type="button" class="chip g" data-act="rmGuest" data-gid="${esc(g.id)}" aria-label="${esc(g.name)} 삭제">${esc(g.name)} ✕</button>`:`<span class="chip g">${esc(g.name)}</span>`).join('')||'<span class="mute">이번 주 용병이 없어요.</span>'}</div></div>
   ${isMgr()?`<div style="text-align:right">${armBtn('delWeek:'+w.id,'이 일정 삭제','ghost warn')}</div>`:''}`;
 }
 function teamCard(t,i,movable){
+  const kit=kitFor(t.color);
   return`<div class="card team" style="--tc:${esc(t.color)}"><h3><span class="row"><span class="dot"></span>${esc(t.name)}</span><span class="mute">${t.members.length}명</span></h3>
-  <div class="chips">${t.members.map(pid=>`<button type="button" class="chip${isGuest(pid)?' g':''}" ${movable?`data-act="move" data-pid="${esc(pid)}" data-t="${i}"`:''}>${esc(nameOf(pid))}${isGuest(pid)?' · 용병':' '+tierTag(ST[pid]?.tier)}</button>`).join('')}</div></div>`;
+  <div class="chips">${t.members.map(pid=>`<button type="button" class="chip${isGuest(pid)?' g':''}" ${movable?`data-act="move" data-pid="${esc(pid)}" data-t="${i}"`:''}>${avOf(pid,28,kit)}${esc(nameOf(pid))}${isGuest(pid)?' · 용병':' '+tierTag(ST[pid]?.tier)}</button>`).join('')}</div></div>`;
 }
 function standings(w){
   const ms=S.matches.filter(m=>m.week===w.id&&m.status==='done');if(!ms.length||!(w.teams||[]).length)return'';
@@ -310,7 +389,7 @@ function resultCard(m){
   <span class="s">${sc.a} : ${sc.b}</span><span class="row" style="--tc:${esc(m.b.color)}"><span class="${wn==='b'?'w':''}">${esc(m.b.name)}</span><span class="dot"></span></span></div>
   <p class="mute" style="margin:4px 0 0;text-align:center">${wn?esc(m[wn].name)+' 승':'무승부'} · ${m.minutes}분 경기</p>
   ${evs.length?`<div style="margin-top:6px">${evs.map(e=>`<div class="ev"><span class="min">${Math.floor(e.sec/60)+1}'</span><span class="grow">${evLine(m,e)}</span></div>`).join('')}</div>`:''}
-  <div class="mvp">${R.raters?`MVP · ${['a','b'].map(s=>`${esc(m[s].name)} <b>${mv[s]?esc(nameOf(mv[s].pid))+' '+mv[s].v.toFixed(1):'—'}</b>`).join(' / ')} <span class="mute">(평가 ${R.raters}명)</span>`:'<span class="mute">평가가 모이면 팀별 MVP가 표시돼요.</span>'}</div>
+  <div class="mvp">${R.raters?`MVP · ${['a','b'].map(s=>`${esc(m[s].name)} ${mv[s]?avOf(mv[s].pid,24,kitFor(m[s].color))+' ':''}<b>${mv[s]?esc(nameOf(mv[s].pid))+' '+mv[s].v.toFixed(1):'—'}</b>`).join(' / ')} <span class="mute">(평가 ${R.raters}명)</span>`:'<span class="mute">평가가 모이면 팀별 MVP가 표시돼요.</span>'}</div>
   ${isMgr()?`<div style="text-align:right;margin-top:6px">${armBtn('delMatch:'+m.id,'경기 기록 삭제','ghost warn')}</div>`:''}</div>`;
 }
 function vMatch(){
@@ -349,7 +428,7 @@ function vRank(){
   const rows=S.players.map(p=>({p,x:ST[p.id]})).sort((A,B)=>val(B.x,ui.sort)-val(A.x,ui.sort)||B.x.g-A.x.g);
   const show=x=>ui.sort==='tier'?(x.tier?x.tier.avg.toFixed(2):'—'):ui.sort==='att'?Math.round(x.att*100)+'%':ui.sort==='win'?(x.played?Math.round(x.w/x.played*100)+'%':'—'):x[ui.sort];
   return`<div class="sorts" role="tablist">${Object.entries(sorts).map(([k,v])=>`<button type="button" class="btn${ui.sort===k?' on':''}" data-act="sort" data-k="${k}">${v}</button>`).join('')}</div>
-  <div class="card"><ul class="list rank">${rows.map((r,i)=>`<li class="${i<3?'top3':''}"><span class="no">${i+1}</span><span><b>${esc(r.p.name)}</b> ${tierTag(r.x.tier)}<br><span class="sub">골 ${r.x.g} · 어시 ${r.x.a} · 참여 ${r.x.yes}/${S.weeks.length} (${Math.round(r.x.att*100)}%) · MVP ${r.x.mvp} · ${r.x.w}승 ${r.x.d}무 ${r.x.l}패</span></span><span class="v">${show(r.x)}</span></li>`).join('')}</ul></div>
+  <div class="card"><ul class="list rank">${rows.map((r,i)=>`<li class="${i<3?'top3':''}"><span class="no">${i+1}</span>${avOf(r.p.id,40)}<span><b>${esc(r.p.name)}</b> ${tierTag(r.x.tier)}<br><span class="sub">골 ${r.x.g} · 어시 ${r.x.a} · 참여 ${r.x.yes}/${S.weeks.length} (${Math.round(r.x.att*100)}%) · MVP ${r.x.mvp} · ${r.x.w}승 ${r.x.d}무 ${r.x.l}패</span></span><span class="v">${show(r.x)}</span></li>`).join('')}</ul></div>
   <details class="card"><summary>티어 기준 보기</summary><p class="mute">최근 평가받은 5경기의 평균 점수(10점 만점)로 정해져요. 1단계가 가장 높아요.</p>
   <table><thead><tr><th>티어</th><th>평균 점수</th></tr></thead><tbody>${Array.from({length:12},(_,k)=>11-k).map(i=>{const t=tierFromAvg(1+i*0.75+0.01);return`<tr><td>${tierTag(t)}</td><td>${(1+i*0.75).toFixed(2)} ${i===11?'이상':'~ '+(1+(i+1)*0.75).toFixed(2)}</td></tr>`}).join('')}</tbody></table></details>`;
 }
@@ -358,7 +437,7 @@ function vMembers(){
   return`${!presUid()?`<div class="card" style="border-color:var(--acc)"><h3>회장 등록</h3><p class="mute">아직 회장이 없어요. 회장은 매니저를 지정하거나 해제할 수 있어요. 팀 대표라면 지금 등록하세요.</p><button class="btn pri" data-act="claimPres" type="button">내가 회장으로 등록</button></div>`:''}
   <h2>팀 설정</h2><div class="card"><label for="teamName" class="mute">팀 이름</label><div class="row"><input type="text" id="teamName" class="grow" maxlength="24" value="${esc(team.name||'')}" placeholder="우리 풋살팀"><button class="btn" data-act="saveTeam" type="button">저장</button></div></div>
   <h2>멤버 ${players.length}명</h2><div class="card"><p class="mute" style="margin-top:0">팀원은 앱 주소로 들어와 구글 로그인 후 이름을 입력하면 바로 가입돼요.</p>
-  <ul class="list">${players.map(p=>{const m=isMgrPid(p.id);return`<li><span>${esc(p.name)} ${tierTag(ST[p.id]?.tier)}${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<br><span class="mute">${p.uid?'구글 계정 연결됨':'계정 미연결 (예전 기록)'}</span></span>
+  <ul class="list">${players.map(p=>{const m=isMgrPid(p.id);return`<li><span class="row" style="flex-wrap:nowrap;gap:10px">${avOf(p.id,40)}<span>${esc(p.name)} ${tierTag(ST[p.id]?.tier)}${roleTag(p.id)}${p.id===me?' <span class="tag t-none">나</span>':''}<br><span class="mute">${p.uid?'구글 계정 연결됨':'계정 미연결 (예전 기록)'}</span></span></span>
     <span class="row">${p.uid&&isPres()&&!isPresPid(p.id)?`<button class="btn ghost" data-act="toggleMgr" data-pid="${esc(p.id)}" type="button">${m?'매니저 해제':'매니저 지정'}</button>`:''}${p.uid&&p.id!==me&&!isPresPid(p.id)&&(isPres()||!m)?armBtn('unlink:'+p.id,'연결 해제','ghost'):''}${p.id!==me&&!isPresPid(p.id)&&(isPres()||!m)?armBtn('delPlayer:'+p.id,'삭제','ghost warn'):''}</span></li>`}).join('')||'<li class="mute">아직 멤버가 없어요.</li>'}</ul></div>
   <p class="mute">이 탭은 회장과 매니저에게만 보여요. 매니저 지정·해제는 회장만 할 수 있어요. 매니저는 투표 일정 올리기, 용병 추가, 팀 짜기, 경기 기록, 멤버 정리를 할 수 있고, 일반 멤버는 본인 참석 투표와 평가, 결과 확인만 할 수 있어요. "연결 해제"를 하면 그 사람은 다시 가입해야 해요.</p>
   <h2>앱 업데이트</h2><div class="card"><div class="row" style="justify-content:space-between"><span>현재 버전 <b>${esc(APP_VERSION)}</b>${ui.newVer?`<br><span style="color:var(--acc)">새 버전 ${esc(ui.newVer)} 있음</span>`:''}</span>
@@ -395,7 +474,7 @@ function render(){
     $('#tabs').classList.toggle('mgr',isMgr());
     computeStats();
     const w=curWeek();$('#subTitle').textContent=w?fmtDate(w.id)+' 경기 · 참석 '+attendees(w).length+'명':'경기 일정을 만들어 주세요';
-    const mp=me&&P(me);$('#meBtn').innerHTML='나: <b>'+esc(mp?mp.name:(authUser?.displayName||'내 계정'))+'</b>';
+    const mp=me&&P(me);if(ui.meKey!==(mp?mp.name:'')){ui.meKey=mp?mp.name:'';$('#meBtn').innerHTML=mp?avatar(mp.name,44):esc((authUser?.displayName||'나').slice(0,1))}
     document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===ui.tab));
     const notes=[];if(slowNote)notes.push(slowNote);
     $('#note').innerHTML=(ui.newVer?`<div class="row" style="justify-content:space-between;background:var(--acc);color:#fff"><span>새 버전이 나왔어요. 업데이트해도 기록은 그대로예요.</span><button class="btn" style="background:#fff;color:#111;border:0" data-act="doUpdate" type="button">업데이트</button></div>`:'')
@@ -419,7 +498,7 @@ function openSheet(s){sh=s;drawSheet();sheet.hidden=false}
 function closeSheet(){sh=null;sheet.hidden=true}
 function drawSheet(){
   if(!sh)return;
-  if(sh.type==='me'){const mp=me&&P(me);panel.innerHTML=`<h2>내 계정</h2><p>${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p><p>연결된 선수: <b>${esc(mp?mp.name:'없음')}</b>${isPres()?' <span class="tag t-pro">회장</span>':isMgr()?' <span class="tag t-semi">매니저</span>':''}</p><p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div><button class="btn ghost" style="margin-top:8px;width:100%" data-act="close" type="button">닫기</button>`;return}
+  if(sh.type==='me'){const mp=me&&P(me);panel.innerHTML=`<div class="row" style="flex-wrap:nowrap;gap:14px">${mp?avOf(me,72):''}<h2 style="margin:0">내 계정</h2></div><p>${esc(authUser?.displayName||'')}<br><span class="mute">${esc(authUser?.email||'')}</span></p><p>연결된 선수: <b>${esc(mp?mp.name:'없음')}</b>${isPres()?' <span class="tag t-pro">회장</span>':isMgr()?' <span class="tag t-semi">매니저</span>':''}</p><p class="mute">앱 버전 ${esc(APP_VERSION)}${ui.newVer?' · 새 버전 있음':''}</p><div class="btnrow"><button class="btn" data-act="${ui.newVer?'doUpdate':'checkUpdate'}" type="button">${ui.newVer?'지금 업데이트':'업데이트 확인'}</button><button class="btn warn" data-act="logout" type="button">로그아웃</button></div><button class="btn ghost" style="margin-top:8px;width:100%" data-act="close" type="button">닫기</button>`;return}
   if(sh.type==='goal'){const m=S.matches.find(x=>x.id===sh.mid);if(!m){closeSheet();return}
     const side=sh.side,opp=side==='a'?'b':'a';let body='';
     if(sh.step==='scorer'){body=`<h2>${esc(m[side].name)} 골! 누가 넣었나요?</h2><div class="pick">${m[side].members.map(pid=>`<button class="btn" data-act="gScorer" data-pid="${esc(pid)}" type="button">${esc(nameOf(pid))}</button>`).join('')}</div>
@@ -428,7 +507,7 @@ function drawSheet(){
     panel.innerHTML=body+`<button class="btn ghost" style="margin-top:12px;width:100%" data-act="close" type="button">취소</button>`;return}
   if(sh.type==='rate'){const m=S.matches.find(x=>x.id===sh.mid);if(!m){closeSheet();return}
     const mySide=m.a.members.includes(me)?'a':'b',opp=mySide==='a'?'b':'a';
-    const grp=(s,label)=>`<h3 style="margin-top:14px">${label} · ${esc(m[s].name)}</h3>${m[s].members.filter(p=>p!==me).map(pid=>`<div class="rate"><label for="r_${esc(pid)}">${esc(nameOf(pid))}${isGuest(pid)?' <span class="mute">용병</span>':''}</label><output id="o_${esc(pid)}">${sh.draft[pid]}</output><input type="range" min="1" max="10" step="1" id="r_${esc(pid)}" data-pid="${esc(pid)}" value="${sh.draft[pid]}"></div>`).join('')||'<p class="mute">평가할 선수가 없어요.</p>'}`;
+    const grp=(s,label)=>`<h3 style="margin-top:14px">${label} · ${esc(m[s].name)}</h3>${m[s].members.filter(p=>p!==me).map(pid=>`<div class="rate"><label for="r_${esc(pid)}" class="row" style="flex-wrap:nowrap">${avOf(pid,32,kitFor(m[s].color))}${esc(nameOf(pid))}${isGuest(pid)?' <span class="mute">용병</span>':''}</label><output id="o_${esc(pid)}">${sh.draft[pid]}</output><input type="range" min="1" max="10" step="1" id="r_${esc(pid)}" data-pid="${esc(pid)}" value="${sh.draft[pid]}"></div>`).join('')||'<p class="mute">평가할 선수가 없어요.</p>'}`;
     panel.innerHTML=`<h2>경기 평가</h2><p class="mute">${esc(m.a.name)} ${score(m).a} : ${score(m).b} ${esc(m.b.name)} · 1점(아쉬움) ~ 10점(최고)</p>${grp(mySide,'우리 팀')}${grp(opp,'상대 팀')}
     <div class="btnrow"><button class="btn ghost" data-act="close" type="button">취소</button><button class="btn pri" data-act="rateSave" type="button">평가 저장</button></div>`}
 }
@@ -449,6 +528,7 @@ const A={
   join:()=>joinTeam(false),
   unlink:b=>{if(!arm(b.dataset.k))return;const p=P(b.dataset.k.split(':')[1]);if(!p||!p.uid)return;if(!dropMgr(p.uid))return;remove('users',p.uid);save('players',{...p,uid:null})},
   close:closeSheet,
+  pickWeek:b=>{ui.week=b.dataset.id;ui.newWeek=false;render()},
   toggleNewWeek:()=>{ui.newWeek=!ui.newWeek;render()},
   createWeek:()=>{const d=$('#newWeekDate').value;if(!d)return toast('날짜를 선택해 주세요');if(S.weeks.some(w=>w.id===d)){ui.week=d;ui.newWeek=false;render();return toast('이미 있는 일정이라 그 일정으로 이동했어요')}
     ui.week=d;ui.newWeek=false;save('weeks',{id:d,guests:[],teams:[],createdAt:Date.now()})},
