@@ -228,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-16';
+const APP_VERSION='2026.11.27-17';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -370,11 +370,11 @@ const ATTRS=[['shoot','슈팅','오늘 슈팅이 가장 좋았던 사람은?'],[
 /* 능력치: 최근 5일(참여한 날 중 부문별 투표가 있었던 날) 동안 뽑힌 비율 → 팀 1등 100, 기본 40 */
 let SA={};
 /* 능력치(OVR 100점 = 5개 항목 × 20점), 최근 참여한 5일 기준
-   기본 점수 = 내가 받은 총평 평균 × 2 (10점 만점 → 항목당 20점, 총평이 없으면 10점)
-   + 부문별 베스트로 뽑힐 때마다 그 항목 +0.1
-   + 골 1개당 슈팅 +0.05, 어시스트 1개당 패스 +0.05
+   기본 점수 = 12 + (내가 받은 총평 평균 - 5) × 0.6  (총평 10점 → 15, 5점 → 12, 1점 → 9.6, 총평 없으면 12)
+   + 부문별 베스트로 뽑힐 때마다 그 항목 +0.05
+   + 골 1개당 슈팅 +0.02, 어시스트 1개당 패스 +0.02
    항목당 최대 20점 */
-const ATTR_MAX=20,PICK_PT=0.1,STAT_PT=0.05;
+const ATTR_MAX=20,PICK_PT=0.05,STAT_PT=0.02,BASE_MID=12,BASE_SLOPE=0.6;
 function computeAttrs(){const res={};const get=pid=>res[pid]=res[pid]||{days:0,votes:{},g:0,a:0};
   weeks().forEach(w=>{const ms=dayMatches(w.id);if(!ms.length)return;const rs=S.ratings.filter(r=>r.day&&r.match===w.id&&r.best);
     dayPeople(w).filter(p=>!isGuest(p)&&P(p)).forEach(pid=>{const o=get(pid);if(o.days>=5)return;o.days++;
@@ -382,7 +382,7 @@ function computeAttrs(){const res={};const get=pid=>res[pid]=res[pid]||{days:0,v
       ms.forEach(m=>(m.events||[]).forEach(e=>{if(!e.og&&e.scorer===pid)o.g++;if(e.assist===pid)o.a++}))})});
   const avg={},cnt={};
   for(const pid in res){const o=res[pid],x=ST[pid]||{};const h=(x.hist||[]).slice(0,5);const r=h.length?h.reduce((s,v)=>s+v,0)/h.length:null;
-    const base=r!=null?r*2:10;o.rating=r;o.base=base;o.any=ATTRS.some(([k])=>o.votes[k]);o.val={};
+    const base=r!=null?BASE_MID+(r-5)*BASE_SLOPE:BASE_MID;o.rating=r;o.base=base;o.any=ATTRS.some(([k])=>o.votes[k]);o.val={};
     ATTRS.forEach(([k])=>{let v=base+PICK_PT*(o.votes[k]||0)+(k==='shoot'?STAT_PT*o.g:0)+(k==='pass'?STAT_PT*o.a:0);
       v=Math.round(Math.min(ATTR_MAX,Math.max(0,v))*10)/10;o.val[k]=v;avg[k]=(avg[k]||0)+v;cnt[k]=(cnt[k]||0)+1});
     o.ovr=Math.round(ATTRS.reduce((s,[k])=>s+o.val[k],0)*10)/10}
@@ -564,7 +564,7 @@ function myRadar(){const o=SA.p&&SA.p[me];const d=o?o.days:0;
     <div><span style="font:700 44px/1 'Barlow Condensed',sans-serif;color:var(--acc)">${o.ovr.toFixed(1)}</span> <span class="mute" style="font-weight:700">/ 100 OVR</span></div>
     <div class="row mute" style="gap:12px;font-size:12px"><span class="row" style="gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(21,112,255,.25);border:2px solid var(--acc)"></span>나</span><span class="row" style="gap:5px"><span style="width:14px;border-top:2px dashed #9aa3b2"></span>팀 평균</span></div></div>
   ${radarSvg(o.val,SA.team)}<div style="background:var(--accSoft);border-radius:12px;padding:10px 12px;margin-top:6px"><span style="font-size:12px;font-weight:700;color:var(--acc)">강점</span><div style="font-weight:700">${strong}</div></div>
-  <p class="mute" style="margin:8px 0 0;font-size:12px">최근 ${d}일(최대 5일) 기준, 항목당 20점이에요. 기본 점수는 내 총평 평균 × 2${o.rating!=null?' (지금 '+o.base.toFixed(1)+'점)':' (총평이 없어서 10점)'}이고, 부문별 베스트로 뽑힐 때마다 +0.1, 골·어시스트 1개마다 슈팅·패스 +0.05씩 더해져요.</p></div>`}
+  <p class="mute" style="margin:8px 0 0;font-size:12px">최근 ${d}일(최대 5일) 기준, 항목당 20점이에요. 기본 점수는 내 총평 평균에 따라 정해지고${o.rating!=null?' (지금 '+o.base.toFixed(1)+'점)':' (총평이 없어서 12점)'}, 부문별 베스트로 뽑힐 때마다 +0.05, 골·어시스트 1개마다 슈팅·패스 +0.02씩 더해져요.</p></div>`}
 function myComments(){const short=id=>{const d=new Date(id+'T00:00:00');return isNaN(d)?id:(d.getMonth()+1)+'.'+d.getDate()};
   const list=S.ratings.filter(r=>r.day&&r.rater!==me&&r.comments&&typeof r.comments[me]==='string'&&r.comments[me].trim()).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,10);
   if(!list.length)return'';
