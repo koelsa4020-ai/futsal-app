@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>풋살팀 매니저</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#ffffff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -24,7 +27,8 @@ button,input,select{font:inherit;color:inherit}
 .top{background:var(--card);color:var(--ink);padding:12px max(4vw,14px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:4}
 .top .in{max-width:720px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .brand{display:flex;align-items:center;gap:10px}
-.logo{width:36px;height:36px;border-radius:10px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex:none}
+.logo{width:36px;height:36px;object-fit:contain;flex:none}
+.gate::before{content:"";display:block;width:72px;height:72px;margin:0 auto 6px;background:url(logo.png) center/contain no-repeat}
 .top h1{font:900 20px/1.2 "Noto Sans KR",sans-serif;margin:0;letter-spacing:-.4px}
 .top p{margin:0;font-size:12px;color:var(--mute)}
 .me{width:44px;height:44px;padding:0;border-radius:50%;border:0;background:var(--soft);cursor:pointer;overflow:hidden;flex:none;font-weight:700;color:var(--acc)}
@@ -160,7 +164,7 @@ details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;c
 </head>
 <body>
 <header class="top"><div class="in">
-  <div class="brand"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg></span>
+  <div class="brand"><img class="logo" src="logo.png" alt="" width="36" height="36">
   <div><h1 id="teamTitle">우리 풋살팀</h1><p id="subTitle">불러오는 중…</p></div></div>
   <button class="me" id="meBtn" type="button" aria-label="내 계정"></button>
 </div></header>
@@ -182,7 +186,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-2';
+const APP_VERSION='2026.11.27-3';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
