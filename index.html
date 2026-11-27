@@ -195,7 +195,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-4';
+const APP_VERSION='2026.11.27-5';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -316,9 +316,13 @@ function dayPlayers(wid){const set=new Set();dayMatches(wid).forEach(m=>[...m.a.
 function dayRatings(wid){const rs=S.ratings.filter(r=>r.day&&r.match===wid);const agg={};
   rs.forEach(r=>Object.entries(r.scores||{}).forEach(([pid,v])=>{v=+v;if(pid===r.rater||!(v>=1&&v<=10))return;(agg[pid]=agg[pid]||[]).push(v)}));
   const avg={};for(const k in agg)avg[k]=agg[k].reduce((a,b)=>a+b,0)/agg[k].length;return{avg,raters:rs.length}}
+/* 팀에 들어가 있어도 불참으로 바꾼 멤버, 삭제된 용병은 화면·경기에서 빠짐 (다시 참석하면 원래 팀으로 돌아옴) */
+function effMembers(w,t){return t.members.filter(p=>isGuest(p)?(w.guests||[]).some(g=>g.id===p):(!!P(p)&&voteOf(w.id,p)==='yes'))}
+/* 그날 참여자 전체: 참석자 + 그날 경기에 뛴 사람 */
+function dayPeople(w){return[...new Set([...attendees(w),...dayPlayers(w.id)])]}
 const dayGoals=(wid,pid)=>dayMatches(wid).reduce((n,m)=>n+goalsIn(m,pid),0);
 function dayMvps(w,R){return(w.teams||[]).map(t=>{let best=null;
-  for(const pid of t.members){const v=R.avg[pid];if(v==null)continue;
+  for(const pid of effMembers(w,t)){const v=R.avg[pid];if(v==null)continue;
     if(!best||v>best.v||(v===best.v&&dayGoals(w.id,pid)>dayGoals(w.id,best.pid)))best={pid,v}}return{team:t,best}})}
 const TIER_G=[['비기너','t-beg'],['아마추어','t-ama'],['세미프로','t-semi'],['프로','t-pro']];
 function tierFromAvg(avg){const i=Math.min(11,Math.max(0,Math.floor((avg-1)/0.75)));const[g,cls]=TIER_G[Math.floor(i/3)];return{label:g+' '+(3-i%3),cls,avg}}
@@ -398,14 +402,17 @@ function vTeams(){
   const w=curWeek();if(!w)return weekBar(null);
   const at=attendees(w);const max=Math.max(2,Math.min(4,Math.floor(at.length/2)||2));ui.teamCount=Math.min(ui.teamCount,max);
   const has=(w.teams||[]).length;const inTeam=new Set((w.teams||[]).flatMap(t=>t.members));
-  const pool=at.filter(pid=>!inTeam.has(pid));const absentOf=pid=>!isGuest(pid)&&voteOf(w.id,pid)!=='yes';
-  if(!isMgr())return weekBar(w)+(has?`${pool.length?poolCard('미배치 선수',pool,{}):''}<h2>짜여진 팀</h2>${w.teams.map(t=>teamCard(t,{absentOf})).join('')}`:empty('아직 팀이 짜이지 않았어요','매니저가 팀을 짜면 여기에 표시돼요. 참석 '+at.length+'명'))+standings(w);
+  const pool=at.filter(pid=>!inTeam.has(pid));const absentOf=()=>false;
+  const eff=(w.teams||[]).map(t=>({...t,members:effMembers(w,t)}));
+  const dropped=(w.teams||[]).flatMap(t=>t.members.filter(p=>!effMembers(w,t).includes(p)));
+  const droppedNote=dropped.length?`<p class="mute" style="margin:-4px 0 10px">불참으로 바뀌어 빠진 선수: ${dropped.map(p=>esc(nameOf(p))).join(', ')} <span style="font-size:12px">(다시 참석하면 원래 팀으로 돌아와요)</span></p>`:'';
+  if(!isMgr())return weekBar(w)+(has?`${pool.length?poolCard('미배치 선수',pool,{}):''}<h2>짜여진 팀</h2>${droppedNote}${eff.map(t=>teamCard(t,{absentOf})).join('')}`:empty('아직 팀이 짜이지 않았어요','매니저가 팀을 짜면 여기에 표시돼요. 참석 '+at.length+'명'))+standings(w);
   return weekBar(w)+`<div class="card"><h3>참석 ${at.length}명 <span class="mute">(멤버 ${at.length-(w.guests||[]).length} · 용병 ${(w.guests||[]).length})</span></h3>
   <div class="row" style="margin:8px 0"><span>팀 수</span><span class="seg">${[2,3,4].map(n=>`<button type="button" class="${ui.teamCount===n?'on yes':''}" data-act="tc" data-n="${n}" ${n>max?'disabled':''}>${n}팀</button>`).join('')}</span></div>
   <label class="row" style="min-height:44px"><input type="checkbox" id="balance" ${ui.balance?'checked':''} style="width:22px;height:22px;accent-color:var(--acc)"> 티어 기준으로 실력 균형 맞추기</label>
   <div class="row" style="margin-top:8px">${at.length<2?'<span class="mute">참석자가 2명 이상이어야 팀을 짤 수 있어요.</span>':has?armBtn('draw:'+w.id,'랜덤으로 다시 짜기','pri'):`<button class="btn pri big" data-act="draw" data-k="draw:${esc(w.id)}" type="button">랜덤 팀 짜기</button>`}</div></div>
   ${has?`${poolCard('미배치 선수',pool,{ctx:'teams',zone:'pool'},pool.length?'팀 짠 뒤에 참석한 선수예요. 원하는 팀으로 끌어다 놓으세요.':'모두 배치됐어요. 선수를 여기로 끌어다 놓으면 팀에서 빠져요.')}
-  <h2>짜여진 팀</h2><p class="mute" style="margin-top:-4px">선수를 꾹 눌러 원하는 팀으로 끌어다 놓으세요. 그냥 누르면 옮길 팀을 고를 수 있어요.</p>${w.teams.map((t,i)=>teamCard(t,{ctx:'teams',zone:'t'+i,absentOf})).join('')}`:''}
+  <h2>짜여진 팀</h2><p class="mute" style="margin-top:-4px">선수를 꾹 눌러 원하는 팀으로 끌어다 놓으세요. 그냥 누르면 팀 이동, 팀에서 빼기, 불참 처리를 고를 수 있어요.</p>${droppedNote}${eff.map((t,i)=>teamCard(t,{ctx:'teams',zone:'t'+i,absentOf})).join('')}`:''}
   ${standings(w)}`;
 }
 function evLine(m,e){const side=m[e.team];
@@ -442,18 +449,18 @@ function vMatch(){
   return weekBar(w)+top+standings(w)+dayMvpCard(w)+(done.length?`<h2>끝난 경기 ${done.length}</h2>${done.map(resultCard).join('')}`:'');
 }
 function teamKitOf(w){const map={};(w.teams||[]).forEach(t=>t.members.forEach(p=>map[p]=kitFor(t.color)));return pid=>map[pid]}
-function benchOf(w,m){const on=new Set([...m.a.members,...m.b.members]);const all=new Set([...(w.teams||[]).flatMap(t=>t.members),...attendees(w)]);return[...all].filter(p=>!on.has(p))}
+function benchOf(w,m){const on=new Set([...m.a.members,...m.b.members]);const all=new Set([...(w.teams||[]).flatMap(t=>effMembers(w,t)),...attendees(w)]);return[...all].filter(p=>!on.has(p))}
 function dayMvpCard(w){if(!dayMatches(w.id).length)return'';const R=dayRatings(w.id);
-  if(!R.raters)return`<h2>오늘의 MVP</h2><div class="card"><p class="mute" style="margin:0">평가 탭에서 오늘 함께 뛴 선수들을 평가하면 팀별 MVP가 정해져요.</p></div>`;
+  if(!R.raters)return`<h2>오늘의 MVP</h2><div class="card"><p class="mute" style="margin:0">평가 탭에서 오늘 참여자들을 평가하면 팀별 MVP가 정해져요.</p></div>`;
   const list=dayMvps(w,R);
   return`<h2>오늘의 MVP <span class="mute" style="font-weight:400">평가 ${R.raters}명</span></h2><div class="card">${list.map(x=>`<div class="prow">${x.best?avOf(x.best.pid,44,kitFor(x.team.color)):'<span class="av" style="width:44px;height:44px;background:var(--soft)"></span>'}<div class="who"><b>${x.best?esc(nameOf(x.best.pid)):'—'}</b><div class="sub"><span class="dot" style="--tc:${esc(x.team.color)};display:inline-block;width:9px;height:9px"></span> ${esc(x.team.name)}</div></div>${x.best?`<span class="pill p-yes">${x.best.v.toFixed(1)}점</span>`:''}</div>`).join('')}</div>`}
 function vRate(){
   if(!me||!P(me))return`<div class="card empty"><h3>내 계정이 선수와 연결되지 않았어요</h3><p class="mute">평가는 경기에 뛴 멤버 본인만 할 수 있어요.</p>${isMgr()?'<button class="btn pri" data-act="go" data-tab="members" type="button">멤버 탭에서 연결하기</button>':''}</div>`;
-  const days=weeks().filter(w=>dayPlayers(w.id).includes(me));
-  if(!days.length)return empty('평가할 경기가 없어요','내가 뛴 경기가 끝나면 여기에서 그날 함께 뛴 선수들을 평가할 수 있어요.');
-  return`<h2>그날 경기 평가</h2><p class="mute" style="margin-top:-4px">하루에 한 번, 그날 함께 뛴 우리 팀과 상대 팀 선수 모두를 1~10점으로 평가해요. 팀마다 평균이 가장 높은 선수가 그날의 MVP가 되고, 최근 5일 평균으로 티어가 정해져요.</p>
+  const days=weeks().filter(w=>dayMatches(w.id).length&&dayPeople(w).includes(me));
+  if(!days.length)return empty('평가할 경기가 없어요','참석한 날 경기가 끝나면 여기에서 그날 참여자 모두를 평가할 수 있어요.');
+  return`<h2>그날 경기 평가</h2><p class="mute" style="margin-top:-4px">하루에 한 번, 그날 참여한 선수 모두를 1~10점으로 평가해요. 팀마다 평균이 가장 높은 선수가 그날의 MVP가 되고, 최근 5일 평균으로 티어가 정해져요.</p>
   ${days.map(w=>{const n=dayMatches(w.id).length;const done=S.ratings.some(r=>r.id===w.id+'__'+me&&r.day);
-    return`<div class="card"><div class="row" style="justify-content:space-between"><span><b>${esc(fmtDate(w.id))}</b><br><span class="mute">${n}경기 · 함께 뛴 선수 ${dayPlayers(w.id).length-1}명</span></span>
+    return`<div class="card"><div class="row" style="justify-content:space-between"><span><b>${esc(fmtDate(w.id))}</b><br><span class="mute">${n}경기 · 평가할 참여자 ${dayPeople(w).length-1}명</span></span>
     <button class="btn ${done?'':'pri'}" data-act="rateOpen" data-id="${esc(w.id)}" type="button">${done?'평가 수정':'평가하기'}</button></div></div>`}).join('')}`;
 }
 function vRank(){
@@ -541,15 +548,15 @@ function drawSheet(){
     else{body=`<h2>어시스트는 누구?</h2><p class="mute">득점: ${esc(nameOf(sh.scorer))}</p><div class="pick"><button class="btn pri" data-act="gAssist" data-pid="" type="button">어시스트 없음</button>${m[side].members.filter(p=>p!==sh.scorer).map(pid=>`<button class="btn" data-act="gAssist" data-pid="${esc(pid)}" type="button">${esc(nameOf(pid))}</button>`).join('')}</div>`}
     panel.innerHTML=body+`<button class="btn ghost" style="margin-top:12px;width:100%" data-act="close" type="button">취소</button>`;return}
   if(sh.type==='rate'){const w=S.weeks.find(x=>x.id===sh.wid);if(!w){closeSheet();return}
-    const ps=new Set(dayPlayers(w.id));ps.delete(me);const teams=w.teams||[];const myT=teams.findIndex(t=>t.members.includes(me));
+    const ps=new Set(dayPeople(w));ps.delete(me);const teams=w.teams||[];const myT=teams.findIndex(t=>t.members.includes(me));
     const row=(pid,kit)=>`<div class="rate"><label for="r_${esc(pid)}" class="row" style="flex-wrap:nowrap">${avOf(pid,32,kit)}${esc(nameOf(pid))}${isGuest(pid)?' <span class="mute">용병</span>':''}</label><output id="o_${esc(pid)}">${sh.draft[pid]}</output><input type="range" min="1" max="10" step="1" id="r_${esc(pid)}" data-pid="${esc(pid)}" value="${sh.draft[pid]}"></div>`;
     const order=[...(myT>=0?[myT]:[]),...teams.map((t,i)=>i).filter(i=>i!==myT)];let html='';const used=new Set();
     order.forEach(i=>{const t=teams[i];const ids=t.members.filter(p=>ps.has(p));ids.forEach(p=>used.add(p));if(ids.length)html+=`<h3 style="margin-top:14px">${i===myT?'우리 팀':'상대 팀'} · ${esc(t.name)}</h3>${ids.map(p=>row(p,kitFor(t.color))).join('')}`});
-    const rest=[...ps].filter(p=>!used.has(p));if(rest.length)html+=`<h3 style="margin-top:14px">함께 뛴 선수</h3>${rest.map(p=>row(p)).join('')}`;
+    const rest=[...ps].filter(p=>!used.has(p));if(rest.length)html+=`<h3 style="margin-top:14px">그 밖의 참여자</h3>${rest.map(p=>row(p)).join('')}`;
     panel.innerHTML=`<h2>${esc(fmtDate(w.id))} 경기 평가</h2><p class="mute">그날 전체 경기를 보고 1점(아쉬움) ~ 10점(최고)으로 평가해 주세요.</p>${html||'<p class="mute">평가할 선수가 없어요.</p>'}
     <div class="btnrow"><button class="btn ghost" data-act="close" type="button">취소</button><button class="btn pri" data-act="rateSave" type="button">평가 저장</button></div>`;return}
   if(sh.type==='move'){const L=moveTargets(sh.ctx);
-    panel.innerHTML=`<h2>${esc(nameOf(sh.pid))} 옮기기</h2><div class="pick">${L.map(x=>`<button class="btn${x.zone===sh.from?' pri':''}" data-act="moveTo" data-zone="${x.zone}" type="button" ${x.zone===sh.from?'disabled':''}>${esc(x.label)}</button>`).join('')}</div><button class="btn ghost" style="margin-top:12px;width:100%" data-act="close" type="button">닫기</button>`}
+    panel.innerHTML=`<h2>${esc(nameOf(sh.pid))} 옮기기</h2><div class="pick">${L.map(x=>`<button class="btn${x.zone===sh.from?' pri':''}${x.zone==='absent'?' warn':''}" data-act="moveTo" data-zone="${x.zone}" type="button" ${x.zone===sh.from?'disabled':''}>${esc(x.label)}</button>`).join('')}</div><button class="btn ghost" style="margin-top:12px;width:100%" data-act="close" type="button">닫기</button>`}
 }
 sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});
 panel.addEventListener('input',e=>{const r=e.target.closest('input[type=range]');if(!r||!sh||sh.type!=='rate')return;sh.draft[r.dataset.pid]=+r.value;const o=document.getElementById('o_'+r.dataset.pid);if(o)o.textContent=r.value});
@@ -586,7 +593,7 @@ const A={
   dragPick:b=>{if(Date.now()-(ui.justDragged||0)<400)return;openSheet({type:'move',ctx:b.dataset.drag,pid:b.dataset.pid,from:b.dataset.from})},
   moveTo:b=>{const x=sh;closeSheet();onDrop(x.ctx,x.pid,x.from,b.dataset.zone)},
   start:()=>{const w=curWeek();const ia=+$('#mA').value,ib=+$('#mB').value,min=Math.max(1,Math.min(90,+$('#mMin').value||12));
-    if(ia===ib)return toast('서로 다른 두 팀을 골라 주세요');ui.min=min;const T=i=>({i,name:w.teams[i].name,color:w.teams[i].color,members:w.teams[i].members.slice()});
+    if(ia===ib)return toast('서로 다른 두 팀을 골라 주세요');ui.min=min;const T=i=>({i,name:w.teams[i].name,color:w.teams[i].color,members:effMembers(w,w.teams[i])});
     save('matches',{id:'m'+newId(),week:w.id,a:T(ia),b:T(ib),minutes:min,status:'live',startedAt:Date.now(),pausedTotal:0,pausedAt:null,events:[],createdAt:Date.now()})},
   pause:()=>{const m=liveMatch();if(!m)return;const now=Date.now();save('matches',m.pausedAt?{...m,pausedTotal:(m.pausedTotal||0)+now-m.pausedAt,pausedAt:null}:{...m,pausedAt:now})},
   endMatch:b=>{if(!arm(b.dataset.k))return;const m=liveMatch();if(!m)return;const sc=score(m);
@@ -598,7 +605,7 @@ const A={
   gOg:b=>addEvent({scorer:b.dataset.pid,assist:null,og:true}),
   rmEv:b=>{const m=liveMatch();if(m)save('matches',{...m,events:(m.events||[]).filter(e=>e.id!==b.dataset.id)})},
   rateOpen:b=>{const wid=b.dataset.id;const ex=S.ratings.find(r=>r.id===wid+'__'+me&&r.day);const draft={};
-    dayPlayers(wid).forEach(pid=>{if(pid!==me)draft[pid]=ex?.scores?.[pid]??5});openSheet({type:'rate',wid,draft})},
+    {const w=S.weeks.find(x=>x.id===wid);if(w)dayPeople(w).forEach(pid=>{if(pid!==me)draft[pid]=ex?.scores?.[pid]??5})}openSheet({type:'rate',wid,draft})},
   rateSave:()=>{const wid=sh.wid;save('ratings',{id:wid+'__'+me,match:wid,week:wid,day:true,rater:me,scores:{...sh.draft},at:Date.now()});closeSheet();toast('평가를 저장했어요')},
   sort:b=>{ui.sort=b.dataset.k;render()},
   saveTeam:()=>{save('settings',{...teamDoc(),name:$('#teamName').value.trim()||'우리 풋살팀'});toast('팀 이름을 저장했어요')},
@@ -612,11 +619,13 @@ const A={
 };
 /* ---------- 드래그 앤 드롭 (마우스: 바로, 터치: 꾹 누른 뒤) ---------- */
 function moveTargets(ctx){
-  if(ctx==='teams'){const w=curWeek();return[...(w.teams||[]).map((t,i)=>({zone:'t'+i,label:t.name})),{zone:'pool',label:'미배치'}]}
+  if(ctx==='teams'){const w=curWeek();return[...(w.teams||[]).map((t,i)=>({zone:'t'+i,label:t.name+'으로 이동'})),{zone:'pool',label:'팀에서 빼기 (미배치)'},{zone:'absent',label:'불참 처리'}]}
   const m=liveMatch();return m?[{zone:'a',label:m.a.name+' (출전)'},{zone:'b',label:m.b.name+' (출전)'},{zone:'bench',label:'벤치 · 대기'}]:[]}
 function onDrop(ctx,pid,from,to){
   if(!isMgr()||from===to)return;
   if(ctx==='teams'){const w=curWeek();if(!w)return;const teams=(w.teams||[]).map(t=>({...t,members:t.members.filter(p=>p!==pid)}));
+    if(to==='absent'){if(isGuest(pid)){save('weeks',{...w,teams,guests:(w.guests||[]).filter(g=>g.id!==pid)});toast(nameOf(pid)+' 용병 삭제')}
+      else{save('weeks',{...w,teams});save('votes',{id:w.id+'__'+pid,week:w.id,pid,status:'no',at:Date.now()});toast(nameOf(pid)+' 불참 처리')}return}
     if(to.startsWith('t')){const i=+to.slice(1);if(!teams[i])return;teams[i].members.push(pid)}
     save('weeks',{...w,teams});toast(nameOf(pid)+' → '+(to==='pool'?'미배치':teams[+to.slice(1)].name))}
   else if(ctx==='match'){const m=liveMatch();if(!m)return;const a={...m.a,members:m.a.members.filter(p=>p!==pid)},b={...m.b,members:m.b.members.filter(p=>p!==pid)};
