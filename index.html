@@ -228,7 +228,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 앱 버전: 새로 배포할 때마다 바꿔야 팀원 앱에 업데이트 알림이 떠요. */
-const APP_VERSION='2026.11.27-19';
+const APP_VERSION='2026.11.27-20';
 /* Firebase 설정: Firebase 콘솔의 firebaseConfig 값을 넣으면 팀원끼리 데이터가 공유돼요. null이면 이 기기에만 저장. */
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0wldDjmLZsEFJJqKwHGrVlgu0UOdNn84",authDomain:"futsal-app-b590a.firebaseapp.com",projectId:"futsal-app-b590a",storageBucket:"futsal-app-b590a.firebasestorage.app",messagingSenderId:"274369569582",appId:"1:274369569582:web:03a5876763f61a9d49d0bf"};
 const FB='https://www.gstatic.com/firebasejs/11.0.2/';
@@ -536,12 +536,15 @@ function vMatch(){
     <div class="row" style="margin-top:8px"><label for="mMin">경기 시간</label><input type="number" id="mMin" min="1" max="90" value="${ui.min}" style="width:90px"><span>분</span></div>
     <button class="btn pri big" style="width:100%;margin-top:12px" data-act="start" type="button">경기 시작</button></div>`:(!isMgr()&&ts.length&&!done.length?'<p class="mute">아직 시작한 경기가 없어요. 매니저가 경기를 시작하면 점수가 실시간으로 보여요.</p>':'');
     top=nm+teamsSection(w)}
-  return weekBar(w)+top+standings(w)+dayMvpCard(w)+dayBestCard(w)+(done.length?`<h2>끝난 경기 ${done.length}</h2>${done.map(resultCard).join('')}`:'');
+  return weekBar(w)+top+standings(w)+dayMvpCard(w)+dayBestCard(w)+dayCommentsCard(w)+(done.length?`<h2>끝난 경기 ${done.length}</h2>${done.map(resultCard).join('')}`:'');
 }
 function teamKitOf(w){const map={};(w.teams||[]).forEach(t=>t.members.forEach(p=>map[p]=kitFor(t.color)));return pid=>map[pid]}
 function benchOf(w,m){const on=new Set([...m.a.members,...m.b.members]);const all=new Set([...(w.teams||[]).flatMap(t=>effMembers(w,t)),...attendees(w)]);return[...all].filter(p=>!on.has(p))}
 function dayBestCard(w){const B=dayBest(w);if(!B)return'';const kit=teamKitOf(w);
   return`<h2>오늘의 부문별 베스트</h2><div class="card"><div class="bestg">${B.map(b=>`<div><span class="k">${b.l}왕</span>${b.pids.length?avOf(b.pids[0],48,kit(b.pids[0])):'<span class="av" style="width:48px;height:48px;background:var(--card)"></span>'}<b>${b.pids.length?b.pids.map(p=>esc(nameOf(p))).join(', '):'—'}</b><span class="mute" style="font-size:12px">${b.n?b.n+'표':'표 없음'}</span></div>`).join('')}</div></div>`}
+function dayCommentsCard(w){const list=[];S.ratings.filter(r=>r.day&&r.match===w.id&&r.comments&&typeof r.comments==='object').forEach(r=>{for(const pid in r.comments){const t=r.comments[pid];if(typeof t==='string'&&t.trim()&&P(pid))list.push({pid,t:t.trim(),at:r.at||0})}});
+  if(!list.length)return'';list.sort((a,b)=>b.at-a.at);const kit=teamKitOf(w);
+  return`<h2>오늘의 한마디 <span class="mute" style="font-weight:400">${list.length}개 · 익명</span></h2><div class="card">${list.slice(0,30).map(c=>`<div class="mrow" style="align-items:flex-start">${avOf(c.pid,36,kit(c.pid))}<div class="grow"><b style="font-size:14px">${esc(nameOf(c.pid))}에게</b><div>${esc(c.t)}</div></div></div>`).join('')}</div>`}
 function dayMvpCard(w){if(!dayMatches(w.id).length)return'';const R=dayRatings(w.id);
   if(!R.raters)return`<h2>오늘의 MVP</h2><div class="card"><p class="mute" style="margin:0">MY 탭에서 오늘 참여자들을 평가하면 팀별 MVP가 정해져요.</p></div>`;
   const list=dayMvps(w,R);
@@ -670,7 +673,13 @@ function tick(){document.querySelectorAll('[data-clock]').forEach(el=>{const m=S
   el.innerHTML=(rem<0?'+'+mmss(-rem):mmss(rem))+'<small>'+(m.pausedAt?'일시정지':rem<0?'추가 시간':'남은 시간')+'</small>'})}
 setInterval(tick,1000);
 setInterval(()=>checkUpdate(false),5*60*1000);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkUpdate(false)});
+/* 폰에서 다른 앱에 갔다 오면 실시간 연결이 늦게 붙는 경우가 있어서, 돌아올 때 연결을 새로 붙임 */
+let hiddenAt=0;
+async function reconnect(){if(!fb||gate!=='app')return;try{await fb.fs.disableNetwork(fb.db);await fb.fs.enableNetwork(fb.db)}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){hiddenAt=Date.now();return}
+  checkUpdate(false);if(hiddenAt&&Date.now()-hiddenAt>3000)reconnect();hiddenAt=0});
+window.addEventListener('online',()=>reconnect());
+window.addEventListener('pageshow',e=>{if(e.persisted)reconnect()});
 setTimeout(()=>checkUpdate(false),3000);
 
 /* ---------- sheet ---------- */
@@ -703,7 +712,7 @@ function drawSheet(){
       body=`<div class="wz-k">부문별 베스트</div><div class="wz-t">${l}</div><p style="margin:0">${q}</p><p class="mute" style="margin:4px 0 0;color:${sel.length?'var(--acc)':''}">${sel.length?sel.length+' / 3명 선택':'최대 3명까지 고를 수 있어요'}</p>
         <div class="pgrid">${all.map(pid=>`<button type="button" class="pbtn${sel.includes(pid)?' on':''}" data-act="bestPick" data-pid="${esc(pid)}" aria-pressed="${sel.includes(pid)}">${avOf(pid,56,kit(pid))}${esc(nameOf(pid))}</button>`).join('')}</div>`+nav(sel.length?'다음':'건너뛰기',sel.length>0);
     }else{const cs=sh.cmts;const ids=Object.keys(cs);
-      body=`<div class="wz-k">마지막 (선택)</div><div class="wz-t">한마디 남기기</div><p class="mute" style="margin:0">하고 싶은 말이 있는 선수를 골라 코멘트를 남겨요. 받은 사람의 MY 탭에 이름 없이 보여요.</p>
+      body=`<div class="wz-k">마지막 (선택)</div><div class="wz-t">한마디 남기기</div><p class="mute" style="margin:0">하고 싶은 말이 있는 선수를 골라 코멘트를 남겨요. 쓴 사람 이름 없이 받은 사람의 MY 탭과 경기 탭 '오늘의 한마디'에 보여요.</p>
         <div class="pgrid" style="grid-template-columns:repeat(4,minmax(0,1fr))">${all.map(pid=>`<button type="button" class="pbtn${pid in cs?' on':''}" style="font-size:13px" data-act="cmtPick" data-pid="${esc(pid)}" aria-pressed="${pid in cs}">${avOf(pid,44,kit(pid))}${esc(nameOf(pid))}</button>`).join('')}</div>
         ${ids.map(pid=>`<div class="cmt">${avOf(pid,36,kit(pid))}<textarea data-cpid="${esc(pid)}" maxlength="100" placeholder="${esc(nameOf(pid))}에게 한마디 (100자)" aria-label="${esc(nameOf(pid))}에게 코멘트">${esc(cs[pid])}</textarea></div>`).join('')}`+nav('평가 완료',true)}
     panel.innerHTML=head+body;return}
